@@ -38,10 +38,12 @@ const SUPPORTED_UNARY_FUNCTIONS = new Set([
   'coth',
   'ln',
   'log',
+  'abs',
   'exp',
   'expe',
   'sqrt',
   'cbrt',
+  'sign',
 ]);
 
 export function differentiateCasExpression(
@@ -564,6 +566,13 @@ function differentiateFunction(
     case 'ln':
     case 'log':
       return casSuccess(binaryNode('/', argumentDerivative.value, cloneCasExpression(argument)));
+    case 'abs':
+      return casSuccess(
+        multiplyChain([
+          functionCallNode('sign', [cloneCasExpression(argument)]),
+          argumentDerivative.value,
+        ])
+      );
     case 'exp':
     case 'expe':
       return casSuccess(

@@ -56,6 +56,16 @@ describe('CasParser', () => {
       ok: true,
       value: functionCallNode('sin', [symbolNode('x')]),
     });
+
+    expect(parser.parse('abs(x)')).toEqual({
+      ok: true,
+      value: functionCallNode('abs', [symbolNode('x')]),
+    });
+
+    expect(parser.parse('sign(x)')).toEqual({
+      ok: true,
+      value: functionCallNode('sign', [symbolNode('x')]),
+    });
   });
 
   it('parses equations at top level', () => {

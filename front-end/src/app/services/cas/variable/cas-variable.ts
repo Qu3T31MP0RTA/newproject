@@ -33,6 +33,7 @@ const RESERVED_VARIABLES = new Set([
   'sqrt',
   'cbrt',
   'abs',
+  'sign',
   'floor',
   'ceil',
   'exp',

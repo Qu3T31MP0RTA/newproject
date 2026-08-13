@@ -1,5 +1,10 @@
 import { CasParser } from './parser/cas-parser';
 import { DefaultCasEngine, createCasEngine } from './public-api';
+import {
+  expectDifferentiatesTo,
+  expectIntegratesTo,
+  expectSolvesTo,
+} from './testing/cas-test-helpers';
 
 describe('CAS public API', () => {
   it('creates a usable engine that can parse, simplify and format', () => {
@@ -40,6 +45,13 @@ describe('CAS public API', () => {
     expect(factored.value.text).toBe('(x - 1) * (x + 1)');
   });
 
+  it('supports integrate end to end', () => {
+    expectIntegratesTo('sqrt(x)', 'x', '2 * x * sqrt(x) / 3');
+    expectIntegratesTo('ln(x)', 'x', 'x * ln(x) - x');
+    expectIntegratesTo('1 / x', 'x', 'ln(abs(x))');
+    expectIntegratesTo('x * sin(x)', 'x', '-x * cos(x) + sin(x)');
+  });
+
   it('rejects unsupported expansions end to end', () => {
     const engine = createCasEngine();
 
@@ -53,56 +65,32 @@ describe('CAS public API', () => {
   });
 
   it('supports differentiation end to end', () => {
+    expectDifferentiatesTo('x ^ 2 + x', 'x', '2 * x + 1');
+    expectDifferentiatesTo('sin(x ^ 2)', 'x', '2 * x * cos(x ^ 2)');
+    expectDifferentiatesTo('x / 2', 'x', '1 / 2');
+    expectDifferentiatesTo('2 ^ x', 'x', 'ln(2) * 2 ^ x');
+    expectDifferentiatesTo('abs(x)', 'x', 'sign(x)');
+  });
+
+  it('rejects unsupported integrals end to end', () => {
     const engine = createCasEngine();
 
-    const parsed = engine.parse('x ^ 2 + x');
-    expect(parsed.ok).toBeTrue();
-    if (!parsed.ok) return;
-
-    const differentiated = engine.differentiate(parsed.value, 'x');
-    expect(differentiated.ok).toBeTrue();
-    if (!differentiated.ok) return;
-
-    expect(engine.format(differentiated.value)).toBe('2 * x + 1');
-
-    const differentiatedText = engine.differentiateText('sin(x ^ 2)', 'x');
-    expect(differentiatedText.ok).toBeTrue();
-    if (!differentiatedText.ok) return;
-
-    expect(differentiatedText.value.text).toBe('2 * x * cos(x ^ 2)');
-
-    const powerText = engine.differentiateText('2 ^ x', 'x');
-    expect(powerText.ok).toBeTrue();
-    if (!powerText.ok) return;
-
-    expect(powerText.value.text).toBe('ln(2) * 2 ^ x');
+    const integrated = engine.integrateText('factorial(x)', 'x');
+    expect(integrated).toEqual({
+      ok: false,
+      error: jasmine.objectContaining({
+        code: 'CAS_UNSUPPORTED_INTEGRAL',
+      }),
+    });
   });
 
   it('supports solving end to end', () => {
+    expectSolvesTo('x ^ 2 - 1', 'x', ['-1', '1']);
+    expectSolvesTo('2 * x + 1 = 0', 'x', ['-1 / 2']);
+    expectSolvesTo('4 * x + 2 = 0', 'x', ['-1 / 2']);
+    expectSolvesTo('x ^ 2 - 2 = 0', 'x', ['-sqrt(2)', 'sqrt(2)']);
+
     const engine = createCasEngine();
-
-    const parsed = engine.parse('x ^ 2 - 1');
-    expect(parsed.ok).toBeTrue();
-    if (!parsed.ok) return;
-
-    const direct = engine.solve(parsed.value, 'x');
-    expect(direct.ok).toBeTrue();
-    if (!direct.ok) return;
-    expect(direct.kind).toBe('finite');
-    expect(direct.text).toEqual(['-1', '1']);
-
-    const linear = engine.solveText('2 * x + 1 = 0', 'x');
-    expect(linear.ok).toBeTrue();
-    if (!linear.ok) return;
-    expect(linear.kind).toBe('finite');
-    expect(linear.text).toEqual(['-1 / 2']);
-
-    const quadratic = engine.solveText('x ^ 2 - 2 = 0', 'x');
-    expect(quadratic.ok).toBeTrue();
-    if (!quadratic.ok) return;
-    expect(quadratic.kind).toBe('finite');
-    expect(quadratic.text).toEqual(['-sqrt(2)', 'sqrt(2)']);
-
     const infinite = engine.solveText('x = x', 'x');
     expect(infinite.ok).toBeTrue();
     if (!infinite.ok) return;

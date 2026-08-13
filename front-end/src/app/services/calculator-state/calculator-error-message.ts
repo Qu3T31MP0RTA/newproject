@@ -24,6 +24,10 @@ export class CalculatorErrorMessageService {
         return error.functionName
           ? `No se puede derivar la función "${error.functionName}".`
           : 'La función no admite derivación simbólica.';
+      case 'CAS_UNSUPPORTED_INTEGRAL':
+        return error.functionName
+          ? `No se puede integrar simbólicamente la función "${error.functionName}" todavía.`
+          : 'Esta integral todavía no está soportada.';
       case 'UNSUPPORTED_EXPRESSION':
       case 'UNSUPPORTED_OPERATION':
         return 'No se pudo procesar la expresión.';

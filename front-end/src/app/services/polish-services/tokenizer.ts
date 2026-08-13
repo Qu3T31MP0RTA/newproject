@@ -22,7 +22,7 @@ export class Tokenizer {
     'sech', 'csch', 'coth',
     'asinh', 'acosh', 'atanh',
     'asech', 'acsch', 'acoth',
-    'ln', 'log', 'sqrt', 'cbrt', 'abs', 'floor', 'ceil', 'exp', 'expe', 'yroot',
+    'ln', 'log', 'sqrt', 'cbrt', 'abs', 'sign', 'floor', 'ceil', 'exp', 'expe', 'yroot',
     'logxy', 'pow', 'mod', 'deg', 'dms', 'factorial', 'xylog', '%',
   ];
 

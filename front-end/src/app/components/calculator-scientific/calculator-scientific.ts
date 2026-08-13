@@ -5,6 +5,11 @@ import { HistoryService } from '../../services/history-services/history';
 import { CalculatorMemoryService } from '../../services/memory-services/calculator-memory';
 import { MemoryToggleService } from '../../services/memory-services/memory-toggle';
 import { CalculatorFacade } from '../../services/calculator-state/calculator-facade';
+import {
+  CAS_QUICK_ACTIONS,
+  buildCasInsertion,
+  type CasQuickAction,
+} from './cas-quick-actions';
 
 @Component({
   selector: 'app-calculator-scientific',
@@ -16,6 +21,8 @@ import { CalculatorFacade } from '../../services/calculator-state/calculator-fac
 export class CalculatorScientificComponent {
   inputValue = '';
   showMemoryButtons = false;
+  showCasTools = false;
+  readonly casQuickActions = CAS_QUICK_ACTIONS;
 
   constructor(
     private calculator: CalculatorFacade,
@@ -51,6 +58,47 @@ export class CalculatorScientificComponent {
 
   toggleMemoryPanel(): void {
     this.memoryToggle.toggle();
+  }
+
+  toggleCasTools(): void {
+    this.showCasTools = !this.showCasTools;
+  }
+
+  closeCasTools(): void {
+    this.showCasTools = false;
+  }
+
+  closeCasToolsAndFocusToggle(): void {
+    this.showCasTools = false;
+    this.casToggleButton()?.focus();
+  }
+
+  onCasPanelKeyDown(event: KeyboardEvent): void {
+    if (event.key !== 'Escape') return;
+
+    event.preventDefault();
+    this.closeCasToolsAndFocusToggle();
+  }
+
+  insertCasAction(action: CasQuickAction): void {
+    const input = this.calculatorInput();
+    const insertion = buildCasInsertion(
+      input?.value ?? this.calculator.snapshot.expression ?? '',
+      input?.selectionStart ?? null,
+      input?.selectionEnd ?? null,
+      action
+    );
+
+    this.calculator.setExpression(insertion.expression);
+    this.closeCasTools();
+
+    queueMicrotask(() => {
+      const currentInput = this.calculatorInput();
+      if (!currentInput) return;
+
+      currentInput.focus();
+      currentInput.setSelectionRange(insertion.caretStart, insertion.caretEnd);
+    });
   }
 
   handleButtonClick(value: string): void {
@@ -120,5 +168,13 @@ export class CalculatorScientificComponent {
     }
 
     this.history.agregarId(expression, result);
+  }
+
+  private calculatorInput(): HTMLInputElement | null {
+    return document.querySelector<HTMLInputElement>('#calculatorInput');
+  }
+
+  private casToggleButton(): HTMLButtonElement | null {
+    return document.querySelector<HTMLButtonElement>('[data-control="cas-tools"]');
   }
 }

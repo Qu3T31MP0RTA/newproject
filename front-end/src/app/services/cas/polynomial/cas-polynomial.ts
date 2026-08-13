@@ -10,6 +10,7 @@ import {
 import { createCasError } from '../errors/cas-errors';
 import { DEFAULT_CAS_LIMITS, resolveCasLimits, type CasLimits } from '../limits/cas-limits';
 import { casFailure, casSuccess, type CasResult } from '../result/cas-result';
+import { approximateRationalValue, buildExactDivision } from '../rational/cas-rational';
 
 export interface PolynomialTerm {
   readonly coefficient: number;
@@ -75,7 +76,20 @@ export function fromPolynomial(polynomial: Polynomial): CasExpression {
     return numberNode(0);
   }
 
-  return expression.reduce((left, right) => binaryNode('+', left, right));
+  let result: CasExpression | null = null;
+  for (const term of expression) {
+    if (term.kind === 'unary' && term.operator === '-') {
+      result =
+        result === null
+          ? unaryNode('-', term.operand)
+          : binaryNode('-', result, term.operand);
+      continue;
+    }
+
+    result = result === null ? term : binaryNode('+', result, term);
+  }
+
+  return result ?? numberNode(0);
 }
 
 export function degree(polynomial: Polynomial): number {
@@ -482,7 +496,44 @@ function buildTermExpression(term: PolynomialTerm): CasExpression | null {
     return unaryNode('-', monomial);
   }
 
-  return binaryNode('*', numberNode(term.coefficient), monomial);
+  const rational = approximateRationalValue(term.coefficient);
+  if (!rational) {
+    return binaryNode('*', numberNode(term.coefficient), monomial);
+  }
+
+  if (rational.denominator === 1) {
+    if (rational.numerator < 0) {
+      return unaryNode(
+        '-',
+        binaryNode('*', numberNode(Math.abs(rational.numerator)), monomial)
+      );
+    }
+
+    return binaryNode('*', numberNode(rational.numerator), monomial);
+  }
+
+  if (rational.numerator === 1) {
+    return buildExactDivision(monomial, rational.denominator);
+  }
+
+  if (rational.numerator === -1) {
+    return unaryNode('-', buildExactDivision(monomial, rational.denominator));
+  }
+
+  if (rational.numerator < 0) {
+    return unaryNode(
+      '-',
+      buildExactDivision(
+        binaryNode('*', numberNode(Math.abs(rational.numerator)), monomial),
+        rational.denominator
+      )
+    );
+  }
+
+  return buildExactDivision(
+    binaryNode('*', numberNode(rational.numerator), monomial),
+    rational.denominator
+  );
 }
 
 function exactNumberExpression(value: number): CasExpression {
@@ -490,43 +541,16 @@ function exactNumberExpression(value: number): CasExpression {
     return numberNode(value);
   }
 
-  const normalized = Object.is(value, -0) ? 0 : value;
-  const text = normalized.toString();
-  if (!/^-?\d+\.\d+$/.test(text)) {
+  const rational = approximateRationalValue(Object.is(value, -0) ? 0 : value);
+  if (!rational) {
     return numberNode(value);
   }
 
-  const negative = text.startsWith('-');
-  const unsigned = negative ? text.slice(1) : text;
-  const [integerPart, fractionPart] = unsigned.split('.');
-  const scale = 10 ** fractionPart.length;
-  const numerator = Number(integerPart) * scale + Number(fractionPart);
-  const divisor = gcdOfIntegers(numerator, scale);
-  const reducedNumerator = numerator / divisor;
-  const reducedDenominator = scale / divisor;
-
-  if (reducedDenominator === 1) {
-    return numberNode(negative ? -reducedNumerator : reducedNumerator);
+  if (rational.denominator === 1) {
+    return numberNode(rational.numerator);
   }
 
-  return binaryNode(
-    '/',
-    numberNode(negative ? -reducedNumerator : reducedNumerator),
-    numberNode(reducedDenominator)
-  );
-}
-
-function gcdOfIntegers(left: number, right: number): number {
-  let a = Math.abs(left);
-  let b = Math.abs(right);
-
-  while (b !== 0) {
-    const temp = b;
-    b = a % b;
-    a = temp;
-  }
-
-  return a;
+  return buildExactDivision(numberNode(rational.numerator), rational.denominator);
 }
 
 function measureInput(

@@ -10,6 +10,7 @@ import {
 import { HistoryService } from '../../services/history-services/history';
 import { CalculatorMemoryService } from '../../services/memory-services/calculator-memory';
 import { MemoryToggleService } from '../../services/memory-services/memory-toggle';
+import { CAS_QUICK_ACTIONS, buildCasInsertion } from './cas-quick-actions';
 
 describe('CalculatorScientificComponent', () => {
   let component: CalculatorScientificComponent;
@@ -128,8 +129,78 @@ describe('CalculatorScientificComponent', () => {
       nativeElement().querySelectorAll<HTMLButtonElement>('button')
     );
 
-    expect(buttons.length).toBe(80);
+    expect(buttons.length).toBe(81);
     expect(buttons.every(button => button.type === 'button')).toBeTrue();
+  });
+
+  it('renders a compact CAS button and opens a discoverable panel', () => {
+    const casButton = nativeElement().querySelector<HTMLButtonElement>('[data-control="cas-tools"]');
+
+    expect(casButton).not.toBeNull();
+    expect(casButton?.type).toBe('button');
+    expect(casButton?.getAttribute('aria-controls')).toBe('cas-tools-panel');
+    expect(casButton?.getAttribute('aria-expanded')).toBe('false');
+    expect(nativeElement().querySelector('#cas-tools-panel')).toBeNull();
+
+    casButton?.click();
+    fixture.detectChanges();
+
+    const panel = nativeElement().querySelector<HTMLElement>('#cas-tools-panel');
+    expect(panel).not.toBeNull();
+    expect(panel?.getAttribute('aria-label')).toBe('Herramientas de álgebra simbólica');
+    expect(casButton?.getAttribute('aria-expanded')).toBe('true');
+    const actions = Array.from(panel!.querySelectorAll<HTMLButtonElement>('[data-cas-action]'));
+    expect(actions.length).toBe(6);
+    expect(actions[0].getAttribute('title')).toContain('Derivada simbólica');
+  });
+
+  it('closes the CAS panel with Escape and returns focus to the toggle button', () => {
+    const casButton = nativeElement().querySelector<HTMLButtonElement>('[data-control="cas-tools"]')!;
+
+    casButton.click();
+    fixture.detectChanges();
+
+    const panel = nativeElement().querySelector<HTMLElement>('#cas-tools-panel')!;
+    panel.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(nativeElement().querySelector('#cas-tools-panel')).toBeNull();
+    expect(casButton.getAttribute('aria-expanded')).toBe('false');
+    expect(document.activeElement).toBe(casButton);
+  });
+
+  it('inserts the selected expression into CAS templates and keeps the rest intact', () => {
+    calculatorState.expression = 'x^2 + 1';
+    const input = attachExpressionInput('x^2 + 1', 0, 3);
+
+    clickCasAction('differentiate');
+
+    expect(mockCalculator.setExpression).toHaveBeenCalledOnceWith('diff(x^2,x) + 1');
+    expect(input.value).toBe('x^2 + 1');
+    input.remove();
+  });
+
+  it('inserts the current caret position into CAS templates when nothing is selected', () => {
+    calculatorState.expression = 'x^2';
+    const input = attachExpressionInput('x^2', 3, 3);
+
+    clickCasAction('simplify');
+
+    expect(mockCalculator.setExpression).toHaveBeenCalledOnceWith('x^2simplify()');
+    input.remove();
+  });
+
+  it('builds the expected caret positions for CAS insertions', () => {
+    expect(
+      buildCasInsertion('x^2 + 1', 0, 3, CAS_QUICK_ACTIONS[0]).caretStart
+    ).toBeGreaterThan(0);
+    expect(
+      buildCasInsertion('', null, null, CAS_QUICK_ACTIONS[2])
+    ).toEqual({
+      expression: 'simplify()',
+      caretStart: 9,
+      caretEnd: 9,
+    });
   });
 
   it('keeps every scientific token unchanged', () => {
@@ -231,6 +302,30 @@ describe('CalculatorScientificComponent', () => {
     expect(mockHistory.agregarId).toHaveBeenCalledWith(
       'diff(x^2,x)',
       '2 * x',
+      calculationResult
+    );
+  });
+
+  it('evaluates symbolic integration commands through the same calculator flow', () => {
+    const calculationResult: CalculatorSymbolicComputationResult = {
+      kind: 'symbolic',
+      source: 'integrate(x^2,x)',
+      operation: 'integrate',
+      display: 'x ^ 3 / 3',
+      exact: true,
+      expression: 'x ^ 3 / 3',
+      latex: 'x ^ 3 / 3',
+    };
+    calculatorState.expression = 'integrate(x^2,x)';
+    calculatorState.calculationResult = calculationResult;
+    mockCalculator.evaluate.and.returnValue('x ^ 3 / 3' as never);
+
+    clickToken('=');
+
+    expect(mockCalculator.evaluate).toHaveBeenCalledOnceWith({ angleMode: 'RAD' });
+    expect(mockHistory.agregarId).toHaveBeenCalledWith(
+      'integrate(x^2,x)',
+      'x ^ 3 / 3',
       calculationResult
     );
   });
@@ -383,5 +478,30 @@ describe('CalculatorScientificComponent', () => {
     input.focus();
     expect(document.activeElement).toBe(input);
     return input;
+  }
+
+  function attachExpressionInput(
+    value: string,
+    selectionStart: number,
+    selectionEnd: number
+  ): HTMLInputElement {
+    const input = attachFocusedInput('calculatorInput');
+    input.value = value;
+    input.setSelectionRange(selectionStart, selectionEnd);
+    return input;
+  }
+
+  function clickCasAction(actionId: string): void {
+    const button = nativeElement().querySelector<HTMLButtonElement>(
+      `[data-control="cas-tools"]`
+    );
+    button?.click();
+    fixture.detectChanges();
+
+    const action = nativeElement().querySelector<HTMLButtonElement>(
+      `[data-cas-action="${actionId}"]`
+    );
+    expect(action).withContext(`Missing CAS action ${actionId}`).toBeDefined();
+    action?.click();
   }
 });

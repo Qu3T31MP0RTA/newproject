@@ -12,6 +12,7 @@ export type CalculatorCasCommandName =
   | 'expand'
   | 'factor'
   | 'differentiate'
+  | 'integrate'
   | 'solve';
 
 export interface CalculatorCasCommandResult {
@@ -55,6 +56,7 @@ const SUPPORTED_COMMANDS: ReadonlySet<string> = new Set([
   'expand',
   'factor',
   'differentiate',
+  'integrate',
   'diff',
   'solve',
 ]);
@@ -86,6 +88,7 @@ const NUMERIC_FUNCTIONS: ReadonlySet<string> = new Set([
   'sqrt',
   'cbrt',
   'abs',
+  'sign',
   'floor',
   'ceil',
   'exp',
@@ -144,6 +147,11 @@ export class CalculatorCasCommandRouterService {
       case 'differentiate': {
         const [expression, variable] = args as readonly [string, string];
         const result = this.engine.differentiateText(expression, variable);
+        return this.fromTextResult(source, command, result);
+      }
+      case 'integrate': {
+        const [expression, variable] = args as readonly [string, string];
+        const result = this.engine.integrateText(expression, variable);
         return this.fromTextResult(source, command, result);
       }
       case 'solve': {
@@ -292,7 +300,11 @@ export class CalculatorCasCommandRouterService {
 
     const args = this.splitTopLevelArguments(trimmed.slice(openIndex + 1, closeIndex));
     const normalizedCommand = (canonicalName ?? name) as CalculatorCasCommandName;
-    if (normalizedCommand === 'solve' || normalizedCommand === 'differentiate') {
+    if (
+      normalizedCommand === 'solve' ||
+      normalizedCommand === 'differentiate' ||
+      normalizedCommand === 'integrate'
+    ) {
       if (args.length !== 2 || args.some(arg => !arg.trim())) {
         return this.failure(
           normalizedCommand,

@@ -334,7 +334,8 @@ export class CalculatorFacade {
         | 'simplify'
         | 'expand'
         | 'factor'
-        | 'differentiate',
+        | 'differentiate'
+        | 'integrate',
       source: commandResult.source,
       display: commandResult.display,
       exact: commandResult.exact,

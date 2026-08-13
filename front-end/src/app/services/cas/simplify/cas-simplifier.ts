@@ -218,6 +218,18 @@ function simplifyFunction(node: CasFunctionCallNode): CasResult<CasExpression> {
     args.push(simplified.value);
   }
 
+  if (args.length === 1) {
+    const [argument] = args;
+
+    if (node.name === 'abs' && argument.kind === 'number') {
+      return createNumberResult(Math.abs(argument.value));
+    }
+
+    if (node.name === 'sign' && argument.kind === 'number') {
+      return createNumberResult(Math.sign(argument.value));
+    }
+  }
+
   return casSuccess(functionCallNode(node.name, args));
 }
 
@@ -240,31 +252,63 @@ function simplifyAddition(
   terms.push(...collectTerms(right, '+'));
 
   let numericTotal = 0;
-  const symbolicTerms: CasExpression[] = [];
+  const signedTerms: Array<{ readonly sign: 1 | -1; readonly expression: CasExpression }> = [];
 
   for (const term of terms) {
     if (term.kind === 'number') {
       numericTotal += term.value;
+    } else if (term.kind === 'unary' && term.operator === '-') {
+      signedTerms.push({
+        sign: -1,
+        expression: term.operand,
+      });
     } else {
-      symbolicTerms.push(term);
+      signedTerms.push({
+        sign: 1,
+        expression: term,
+      });
     }
   }
 
-  const rebuilt: CasExpression[] = [...symbolicTerms];
-  if (numericTotal !== 0 || rebuilt.length === 0) {
-    rebuilt.push(numberNode(numericTotal));
+  if (numericTotal !== 0) {
+    signedTerms.push({
+      sign: numericTotal < 0 ? -1 : 1,
+      expression: numberNode(Math.abs(numericTotal)),
+    });
   }
 
-  const result = rebuildBinaryChain('+', rebuilt);
-  if (!result.ok) return result;
+  if (signedTerms.length === 0) {
+    return createNumberResult(0);
+  }
 
-  return casSuccess(canonicalizePolynomialExpression(result.value));
+  let result: CasExpression | null = null;
+  for (const term of signedTerms) {
+    if (result === null) {
+      result = term.sign === -1 ? unaryNode('-', term.expression) : term.expression;
+      continue;
+    }
+
+    result =
+      term.sign === -1
+        ? binaryNode('-', result, term.expression)
+        : binaryNode('+', result, term.expression);
+  }
+
+  if (result === null) {
+    return createNumberResult(0);
+  }
+
+  return casSuccess(canonicalizePolynomialExpression(result));
 }
 
 function simplifySubtraction(
   left: CasExpression,
   right: CasExpression
 ): CasResult<CasExpression> {
+  if (isStructurallyEqual(left, right)) {
+    return createNumberResult(0);
+  }
+
   if (right.kind === 'number' && right.value === 0) {
     return casSuccess(left);
   }
@@ -585,6 +629,27 @@ function buildMonomialExpression(
     if (coefficient.value === -1) {
       return unaryNode('-', monomial);
     }
+  }
+
+  if (
+    coefficient.kind === 'binary' &&
+    coefficient.operator === '/' &&
+    coefficient.left.kind === 'number' &&
+    coefficient.right.kind === 'number'
+  ) {
+    if (coefficient.left.value === 1) {
+      return binaryNode('/', monomial, numberNode(coefficient.right.value));
+    }
+
+    if (coefficient.left.value === -1) {
+      return unaryNode('-', binaryNode('/', monomial, numberNode(coefficient.right.value)));
+    }
+
+    return binaryNode(
+      '/',
+      binaryNode('*', numberNode(coefficient.left.value), monomial),
+      numberNode(coefficient.right.value)
+    );
   }
 
   return binaryNode('*', coefficient, monomial);

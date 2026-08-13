@@ -131,6 +131,7 @@ export class evaluator {
           case 'sqrt': result = toReal(a).sqrt(); break;
           case 'cbrt': result = toReal(a).pow(new Complex(1 / 3)); break;
           case 'abs': result = Math.abs(toReal(a).re); break;
+          case 'sign': result = Math.sign(toReal(a).re); break;
           case 'floor': result = Math.floor(toReal(a).re); break;
           case 'ceil': result = Math.ceil(toReal(a).re); break;
           case 'expe': result = Math.exp(toReal(a).re); break;

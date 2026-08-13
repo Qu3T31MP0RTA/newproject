@@ -6,6 +6,7 @@ export * from './result/cas-result';
 export * from './polynomial/cas-polynomial';
 export * from './operations/cas-operations';
 export * from './differentiate/cas-differentiator';
+export * from './integrate/cas-integrator';
 export * from './solve/cas-solver';
 export * from './simplify/cas-simplifier';
 export * from './format/cas-formatter';
@@ -25,6 +26,10 @@ import {
   type CasOperationOptions,
 } from './differentiate/cas-differentiator';
 import {
+  integrateCasExpression,
+  integrateCasText,
+} from './integrate/cas-integrator';
+import {
   solveCasExpression,
   solveCasText,
   type CasSolveResult,
@@ -43,10 +48,20 @@ export interface CasEngine {
     variable: string,
     options?: CasOperationOptions
   ): CasResult<CasExpression>;
+  integrate(
+    expression: CasExpression,
+    variable: string,
+    options?: CasOperationOptions
+  ): CasResult<CasExpression>;
   simplifyText(source: string): CasResult<CasTextResult>;
   expandText(source: string): CasResult<CasTextResult>;
   factorText(source: string): CasResult<CasTextResult>;
   differentiateText(
+    source: string,
+    variable: string,
+    options?: CasOperationOptions
+  ): CasResult<CasTextResult>;
+  integrateText(
     source: string,
     variable: string,
     options?: CasOperationOptions
@@ -83,6 +98,14 @@ export class DefaultCasEngine implements CasEngine {
     return differentiateCasExpression(expression, variable, options);
   }
 
+  integrate(
+    expression: CasExpression,
+    variable: string,
+    options?: CasOperationOptions
+  ): CasResult<CasExpression> {
+    return integrateCasExpression(expression, variable, options);
+  }
+
   solve(
     expression: CasExpression,
     variable: string,
@@ -109,6 +132,14 @@ export class DefaultCasEngine implements CasEngine {
     options?: CasOperationOptions
   ): CasResult<CasTextResult> {
     return differentiateCasText(source, variable, this.parser, options);
+  }
+
+  integrateText(
+    source: string,
+    variable: string,
+    options?: CasOperationOptions
+  ): CasResult<CasTextResult> {
+    return integrateCasText(source, variable, this.parser, options);
   }
 
   solveText(

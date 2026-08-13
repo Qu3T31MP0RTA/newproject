@@ -246,6 +246,26 @@ describe('CalculatorFacade', () => {
     } as CalculatorComputationResult);
   });
 
+  it('evaluates integrate CAS commands through the public router', () => {
+    facade.setExpression('integrate(x^2,x)');
+
+    const result = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(result).toBe('x ^ 3 / 3');
+    expect(facade.snapshot.expression).toBe('x ^ 3 / 3');
+    expect(facade.snapshot.result).toBe('x ^ 3 / 3');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'symbolic',
+      operation: 'integrate',
+      source: 'integrate(x^2,x)',
+      display: 'x ^ 3 / 3',
+      exact: true,
+      expression: 'x ^ 3 / 3',
+      latex: 'x ^ 3 / 3',
+    } as CalculatorComputationResult);
+  });
+
   it('maps CAS derivative errors to a readable message', () => {
     facade.setExpression('diff(factorial(x), x)');
 
@@ -257,6 +277,20 @@ describe('CalculatorFacade', () => {
     expect(facade.snapshot.error).toEqual({
       code: 'CAS_UNSUPPORTED_DERIVATIVE',
       message: 'No se puede derivar la función "factorial".',
+    });
+  });
+
+  it('maps CAS integral errors to a readable message', () => {
+    facade.setExpression('integrate(factorial(x), x)');
+
+    expect(() => facade.evaluate()).toThrowError(
+      'No se puede integrar simbólicamente la función "factorial" todavía.'
+    );
+
+    expect(facade.snapshot.status).toBe('error');
+    expect(facade.snapshot.error).toEqual({
+      code: 'CAS_UNSUPPORTED_INTEGRAL',
+      message: 'No se puede integrar simbólicamente la función "factorial" todavía.',
     });
   });
 

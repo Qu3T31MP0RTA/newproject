@@ -58,7 +58,7 @@ export interface CalculatorNumericComputationResult {
 
 export interface CalculatorSymbolicComputationResult {
   kind: 'symbolic';
-  operation: 'simplify' | 'expand' | 'factor' | 'differentiate';
+  operation: 'simplify' | 'expand' | 'factor' | 'differentiate' | 'integrate';
   source: string;
   display: string;
   exact: boolean;

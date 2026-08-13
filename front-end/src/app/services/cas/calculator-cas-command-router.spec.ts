@@ -13,7 +13,9 @@ describe('CalculatorCasCommandRouterService', () => {
 
   it('does not handle ordinary numeric functions', () => {
     expect(router.canHandle('sin(1)')).toBeFalse();
+    expect(router.canHandle('sign(1)')).toBeFalse();
     expect(router.execute('sin(1)')).toBeNull();
+    expect(router.execute('sign(1)')).toBeNull();
   });
 
   it('simplifies expressions through the public CAS engine', () => {
@@ -38,6 +40,50 @@ describe('CalculatorCasCommandRouterService', () => {
       expect(execution.command).toBe('expand');
       expect(execution.result.kind).toBe('symbolic');
       expect(execution.result.display).toContain('x ^ 2');
+    }
+  });
+
+  it('integrates expressions through the public CAS engine', () => {
+    const execution = router.execute('integrate(x^2, x)');
+    const lnExecution = router.execute('integrate(ln(x), x)');
+    const byPartsExecution = router.execute('integrate(x*sin(x), x)');
+
+    expect(execution).not.toBeNull();
+    expect(execution?.ok).toBeTrue();
+    if (execution?.ok) {
+      expect(execution.command).toBe('integrate');
+      expect(execution.result.kind).toBe('symbolic');
+      expect(execution.result.display).toBe('x ^ 3 / 3');
+      expect(execution.result.latex).toBe('x ^ 3 / 3');
+    }
+
+    expect(lnExecution).not.toBeNull();
+    expect(lnExecution?.ok).toBeTrue();
+    if (lnExecution?.ok) {
+      expect(lnExecution.command).toBe('integrate');
+      expect(lnExecution.result.kind).toBe('symbolic');
+      expect(lnExecution.result.display).toBe('x * ln(x) - x');
+    }
+
+    expect(byPartsExecution).not.toBeNull();
+    expect(byPartsExecution?.ok).toBeTrue();
+    if (byPartsExecution?.ok) {
+      expect(byPartsExecution.command).toBe('integrate');
+      expect(byPartsExecution.result.kind).toBe('symbolic');
+      expect(byPartsExecution.result.display).toBe('-x * cos(x) + sin(x)');
+    }
+  });
+
+  it('preserves integral metadata for the new limited rules', () => {
+    for (const source of ['integrate(ln(x), x)', 'integrate(x*sin(x), x)']) {
+      const execution = router.execute(source);
+
+      expect(execution).not.toBeNull();
+      expect(execution?.ok).toBeTrue();
+      if (execution?.ok) {
+        expect(execution.command).toBe('integrate');
+        expect(execution.result.kind).toBe('symbolic');
+      }
     }
   });
 
@@ -163,6 +209,33 @@ describe('CalculatorCasCommandRouterService', () => {
     }
   });
 
+  it('reports integrate arity errors before validating variables', () => {
+    for (const source of [
+      'integrate()',
+      'integrate(x)',
+      'integrate(x,)',
+      'integrate(x,x,y)',
+    ]) {
+      const execution = router.execute(source);
+
+      expect(execution).not.toBeNull();
+      expect(execution?.ok).toBeFalse();
+      if (execution && !execution.ok) {
+        expect(execution.error.code).toBe('CAS_COMMAND_ARITY_ERROR');
+      }
+    }
+  });
+
+  it('reports invalid variables for integrate commands', () => {
+    const execution = router.execute('integrate(x, 5)');
+
+    expect(execution).not.toBeNull();
+    expect(execution?.ok).toBeFalse();
+    if (execution && !execution.ok) {
+      expect(execution.error.code).toBe('INVALID_VARIABLE');
+    }
+  });
+
   it('preserves derivative error metadata for unsupported functions', () => {
     const execution = router.execute('diff(factorial(x), x)');
 
@@ -170,6 +243,17 @@ describe('CalculatorCasCommandRouterService', () => {
     expect(execution?.ok).toBeFalse();
     if (execution && !execution.ok) {
       expect(execution.error.code).toBe('CAS_UNSUPPORTED_DERIVATIVE');
+      expect(execution.error.functionName).toBe('factorial');
+    }
+  });
+
+  it('preserves integral error metadata for unsupported functions', () => {
+    const execution = router.execute('integrate(factorial(x), x)');
+
+    expect(execution).not.toBeNull();
+    expect(execution?.ok).toBeFalse();
+    if (execution && !execution.ok) {
+      expect(execution.error.code).toBe('CAS_UNSUPPORTED_INTEGRAL');
       expect(execution.error.functionName).toBe('factorial');
     }
   });

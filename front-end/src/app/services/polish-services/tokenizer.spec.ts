@@ -38,4 +38,13 @@ describe('Tokenizer', () => {
       '3',
     ]);
   });
+
+  it('recognizes sign as a function token', () => {
+    expect(tokenizer.tokenize('sign(x)').map(token => token.value)).toEqual([
+      'sign',
+      '(',
+      'x',
+      ')',
+    ]);
+  });
 });

@@ -8,6 +8,10 @@ import {
 import { formatCasExpression } from '../format/cas-formatter';
 import { CasParser } from '../parser/cas-parser';
 import { simplifyCasExpression, simplifyCasText } from './cas-simplifier';
+import {
+  expectIdempotent,
+  expectNoForbiddenDecimal,
+} from '../testing/cas-test-helpers';
 
 describe('simplifyCasExpression', () => {
   it('simplifies safe identities and folds numbers', () => {
@@ -36,11 +40,17 @@ describe('simplifyCasExpression', () => {
       ['x ^ 2 / x', 'x'],
       ['(2 * x) / 2', 'x'],
       ['x - x', '0'],
+      ['x + -x', '0'],
       ['3 * x - x', '2 * x'],
       ['x ^ 2 + 2 * x ^ 2', '3 * x ^ 2'],
       ['2 * x + 3 + 4 * x - 1', '6 * x + 2'],
       ['x + 2 + 3', 'x + 5'],
       ['2 * 3 * x', '6 * x'],
+      ['abs(5)', '5'],
+      ['abs(-5)', '5'],
+      ['sign(5)', '1'],
+      ['sign(-5)', '-1'],
+      ['sign(0)', '0'],
     ]);
 
     const parser = new CasParser();
@@ -61,6 +71,18 @@ describe('simplifyCasExpression', () => {
     const parser = new CasParser();
 
     for (const source of ['x / x', '0 / x', 'sqrt(x ^ 2)']) {
+      const parsed = parser.parse(source);
+      expect(parsed.ok).withContext(source).toBeTrue();
+      if (!parsed.ok) continue;
+
+      const simplified = simplifyCasExpression(parsed.value);
+      expect(simplified.ok).withContext(source).toBeTrue();
+      if (!simplified.ok) continue;
+
+      expect(formatCasExpression(simplified.value)).withContext(source).toBe(source);
+    }
+
+    for (const source of ['abs(x)', 'sign(x)']) {
       const parsed = parser.parse(source);
       expect(parsed.ok).withContext(source).toBeTrue();
       if (!parsed.ok) continue;
@@ -101,6 +123,30 @@ describe('simplifyCasExpression', () => {
     expect(second.ok).toBeTrue();
     expect(expression).toEqual(snapshot);
     expect(first).toEqual(second);
+  });
+
+  it('is idempotent for critical rational and cancellation cases', () => {
+    for (const source of [
+      'y * x',
+      'x * y',
+      'x ^ 2 / 2',
+      'x ^ 3 / 3',
+      'y * x ^ 2 / 2',
+      'sin(x) - sin(x)',
+      'x * y + y * x',
+    ]) {
+      expectIdempotent(source);
+
+      const parsed = new CasParser().parse(source);
+      expect(parsed.ok).withContext(source).toBeTrue();
+      if (!parsed.ok) continue;
+
+      const simplified = simplifyCasExpression(parsed.value);
+      expect(simplified.ok).withContext(source).toBeTrue();
+      if (!simplified.ok) continue;
+
+      expectNoForbiddenDecimal(formatCasExpression(simplified.value));
+    }
   });
 
   it('fails on division by zero', () => {

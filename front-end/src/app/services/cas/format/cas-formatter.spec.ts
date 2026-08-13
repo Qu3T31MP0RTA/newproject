@@ -31,6 +31,8 @@ describe('formatCasExpression', () => {
     ).toBe('2 * x / (x ^ 2 + 1)');
     expect(formatCasExpression(binaryNode('^', symbolNode('x'), numberNode(2)))).toBe('x ^ 2');
     expect(formatCasExpression(functionCallNode('sin', [symbolNode('x')]))).toBe('sin(x)');
+    expect(formatCasExpression(functionCallNode('abs', [symbolNode('x')]))).toBe('abs(x)');
+    expect(formatCasExpression(functionCallNode('sign', [symbolNode('x')]))).toBe('sign(x)');
     expect(formatCasExpression(equationNode(symbolNode('x'), numberNode(2)))).toBe('x = 2');
   });
 });

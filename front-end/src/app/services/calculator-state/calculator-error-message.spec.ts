@@ -13,6 +13,16 @@ describe('CalculatorErrorMessageService', () => {
     ).toBe('No se puede derivar la función "foo".');
   });
 
+  it('maps CAS integral errors to readable messages', () => {
+    expect(
+      service.getMessage({
+        code: 'CAS_UNSUPPORTED_INTEGRAL',
+        message: 'La función factorial no está soportada simbólicamente en integrales.',
+        functionName: 'factorial',
+      })
+    ).toBe('No se puede integrar simbólicamente la función "factorial" todavía.');
+  });
+
   it('maps command arity errors to readable messages', () => {
     expect(
       service.getMessage({

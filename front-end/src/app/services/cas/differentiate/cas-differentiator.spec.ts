@@ -6,6 +6,11 @@ import {
   differentiateCasExpression,
   differentiateCasText,
 } from './cas-differentiator';
+import {
+  expectDifferentiatesTo,
+  expectNoForbiddenDecimal,
+  expectNumericallyEquivalentExpressions,
+} from '../testing/cas-test-helpers';
 
 describe('CAS differentiation', () => {
   const parser = new CasParser();
@@ -43,20 +48,14 @@ describe('CAS differentiation', () => {
       ['x * y', 'y'],
       ['x * sin(x)', 'sin(x) + x * cos(x)'],
       ['x / 2', '1 / 2'],
+      ['x ^ 2 / 3', '2 * x / 3'],
+      ['x ^ 3 / 4', '3 * x ^ 2 / 4'],
       ['1 / x', '-1 / x ^ 2'],
       ['x / (x + 1)', '1 / (x + 1) ^ 2'],
     ];
 
     for (const [source, expected] of cases) {
-      const parsed = parser.parse(source);
-      expect(parsed.ok).withContext(source).toBeTrue();
-      if (!parsed.ok) continue;
-
-      const result = differentiateCasExpression(parsed.value, 'x');
-      expect(result.ok).withContext(source).toBeTrue();
-      if (!result.ok) continue;
-
-      expect(formatCasExpression(result.value)).withContext(source).toBe(expected);
+      expectDifferentiatesTo(source, 'x', expected);
     }
   });
 
@@ -69,6 +68,8 @@ describe('CAS differentiation', () => {
       ['exp(x + 1)', 'exp(x + 1)'],
       ['tan(x)', '1 / cos(x) ^ 2'],
       ['log(x)', '1 / x'],
+      ['abs(x)', 'sign(x)'],
+      ['abs(x ^ 2)', '2 * x * sign(x ^ 2)'],
     ];
 
     for (const [source, expected] of cases) {
@@ -94,6 +95,39 @@ describe('CAS differentiation', () => {
     if (!result.ok) return;
 
     expect(formatCasExpression(result.value)).toBe('x + 2 * y');
+  });
+
+  it('keeps logarithmic antiderivative derivatives valid under domain-aware comparison', () => {
+    const lnAbs = parser.parse('ln(abs(x))');
+    expect(lnAbs.ok).toBeTrue();
+    if (!lnAbs.ok) return;
+
+    const derivative = differentiateCasExpression(lnAbs.value, 'x');
+    expect(derivative.ok).toBeTrue();
+    if (!derivative.ok) return;
+
+    expect(formatCasExpression(derivative.value)).toBe('sign(x) / abs(x)');
+    expectNumericallyEquivalentExpressions(
+      formatCasExpression(derivative.value),
+      '1 / x',
+      'x',
+      [ -3, -2, -1, 1, 2, 3 ]
+    );
+
+    const tanAntiderivative = parser.parse('-ln(abs(cos(x)))');
+    expect(tanAntiderivative.ok).toBeTrue();
+    if (!tanAntiderivative.ok) return;
+
+    const tanDerivative = differentiateCasExpression(tanAntiderivative.value, 'x');
+    expect(tanDerivative.ok).toBeTrue();
+    if (!tanDerivative.ok) return;
+
+    expectNumericallyEquivalentExpressions(
+      formatCasExpression(tanDerivative.value),
+      'tan(x)',
+      'x',
+      [ -2.5, -1.5, -0.75, 0.25, 0.75, 1.25 ]
+    );
   });
 
   it('returns zero when the expression does not depend on the variable', () => {
@@ -188,6 +222,38 @@ describe('CAS differentiation', () => {
     if (!result.ok) return;
 
     expect(result.value.text).toBe('3 * x ^ 2 + 1');
+  });
+
+  it('keeps rational derivatives exact and stable across repeated simplification', () => {
+    const cases = [
+      ['x / 2', '1 / 2'],
+      ['x ^ 2 / 3', '2 * x / 3'],
+      ['x ^ 3 / 4', '3 * x ^ 2 / 4'],
+    ];
+
+    for (const [source, expected] of cases) {
+      const parsed = parser.parse(source);
+      expect(parsed.ok).withContext(source).toBeTrue();
+      if (!parsed.ok) continue;
+
+      const result = differentiateCasExpression(parsed.value, 'x');
+      expect(result.ok).withContext(source).toBeTrue();
+      if (!result.ok) continue;
+
+      const text = formatCasExpression(result.value);
+      expect(text).withContext(source).toBe(expected);
+      expectNoForbiddenDecimal(text);
+
+      const reparsed = parser.parse(text);
+      expect(reparsed.ok).withContext(source).toBeTrue();
+      if (!reparsed.ok) continue;
+
+      const second = differentiateCasExpression(parsed.value, 'x');
+      expect(second.ok).withContext(source).toBeTrue();
+      if (!second.ok) continue;
+
+      expect(formatCasExpression(second.value)).withContext(source).toBe(text);
+    }
   });
 });
 

@@ -51,6 +51,102 @@
   background: rgba(26, 35, 49, 0.5);
 }
 
+.cas-panel {
+  width: min(100%, 680px);
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(99, 125, 165, 0.34);
+  border-radius: 10px;
+  background: rgba(26, 35, 49, 0.58);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.cas-panel-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.cas-panel-header h2 {
+  margin: 0;
+  color: #f0f4fb;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cas-panel-header p,
+.cas-panel-hint {
+  margin: 0;
+  color: #aeb2bf;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.cas-panel-hint {
+  text-align: right;
+}
+
+.cas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(166px, 1fr));
+  gap: 7px;
+}
+
+.cas-action {
+  min-height: 60px;
+  padding: 9px 10px 8px;
+  align-items: start;
+  justify-content: start;
+  text-align: left;
+  white-space: normal;
+  border-color: rgba(99, 125, 165, 0.42);
+  background: rgba(36, 38, 48, 0.98);
+}
+
+.cas-action:hover {
+  border-color: #88aef7;
+  background: rgba(44, 54, 72, 0.98);
+}
+
+.cas-action-label,
+.cas-action-syntax,
+.cas-action-example {
+  display: block;
+  width: 100%;
+}
+
+.cas-action-label {
+  color: #f6f8ff;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.cas-action-syntax {
+  margin-top: 3px;
+  color: #c1d5f4;
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: 0.68rem;
+}
+
+.cas-action-example {
+  margin-top: 4px;
+  color: #9ca8bd;
+  font-size: 0.67rem;
+}
+
+.cas-key[aria-expanded='true'] {
+  color: #f4f7ff;
+  border-color: #8ab4ff;
+  background: rgba(52, 78, 121, 0.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(120, 169, 255, 0.18);
+}
+
 .advanced-panel {
   width: 100%;
   max-width: 680px;
@@ -238,12 +334,41 @@
   }
 
   .control-toolbar {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 6px;
   }
 
   .memory-toolbar {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
+  }
+
+  .cas-panel {
+    padding: 8px;
+  }
+
+  .cas-panel-header {
+    align-items: start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .cas-panel-hint {
+    text-align: left;
+  }
+
+  .cas-grid {
+    grid-template-columns: repeat(auto-fit, minmax(144px, 1fr));
+    gap: 6px;
+  }
+
+  .cas-action {
+    min-height: 54px;
+    padding: 8px 8px 7px;
+  }
+
+  .cas-action-example {
+    display: none;
   }
 
   .function-grid {

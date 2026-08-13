@@ -40,11 +40,52 @@
       aria-label="Abrir panel de memoria"
       (click)="toggleMemoryPanel()"
     >M</button>
+    <button
+      type="button"
+      class="key control-key cas-key"
+      data-control="cas-tools"
+      aria-label="Abrir herramientas de álgebra simbólica"
+      aria-controls="cas-tools-panel"
+      [attr.aria-expanded]="showCasTools"
+      (click)="toggleCasTools()"
+    >CAS</button>
   </div>
 
   <span id="angle-mode-help" class="sr-only">
     Cambia entre radianes, gradianes y grados.
   </span>
+
+  <section
+    *ngIf="showCasTools"
+    id="cas-tools-panel"
+    class="cas-panel"
+    aria-label="Herramientas de álgebra simbólica"
+    (keydown)="onCasPanelKeyDown($event)"
+  >
+    <header class="cas-panel-header">
+      <div>
+        <h2>CAS</h2>
+        <p>Álgebra simbólica</p>
+      </div>
+      <span class="cas-panel-hint">Insertar plantilla en la expresión actual</span>
+    </header>
+
+    <div class="cas-grid" role="group" aria-label="Acciones CAS">
+      <button
+        *ngFor="let action of casQuickActions"
+        type="button"
+        class="key cas-action"
+        [attr.data-cas-action]="action.id"
+        [attr.aria-label]="action.ariaLabel"
+        [attr.title]="action.description + ' · ' + action.example"
+        (click)="insertCasAction(action)"
+      >
+        <span class="cas-action-label">{{ action.label }}</span>
+        <span class="cas-action-syntax">{{ action.template }}</span>
+        <span class="cas-action-example">{{ action.example }}</span>
+      </button>
+    </div>
+  </section>
 
   <div
     *ngIf="showMemoryButtons"

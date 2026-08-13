@@ -56,6 +56,7 @@ describe('CAS solver', () => {
       ['-x + 3 = 0', ['3']],
       ['2 * (x + 1) = 6', ['2']],
       ['2 * x + 1 = 0', ['-1 / 2']],
+      ['4 * x + 2 = 0', ['-1 / 2']],
     ];
 
     for (const [source, expected] of cases) {

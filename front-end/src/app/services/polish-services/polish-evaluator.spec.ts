@@ -65,4 +65,23 @@ describe('PolishParser', () => {
       expect(complex.im).toBeCloseTo(1);
     }
   });
+
+  it('supports sign in postfix evaluation', () => {
+    const tokenizer = new Tokenizer();
+    const parserService = new parser();
+
+    const positive = service.evaluatePostFix(
+      parserService.toPostFix(tokenizer.tokenize('sign(3)'))
+    );
+    const negative = service.evaluatePostFix(
+      parserService.toPostFix(tokenizer.tokenize('sign(-3)', { unaryOperators: true }))
+    );
+    const zero = service.evaluatePostFix(
+      parserService.toPostFix(tokenizer.tokenize('sign(0)'))
+    );
+
+    expect(positive).toBe(1);
+    expect(negative).toBe(-1);
+    expect(zero).toBe(0);
+  });
 });
