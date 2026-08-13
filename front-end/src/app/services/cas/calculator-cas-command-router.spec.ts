@@ -41,6 +41,16 @@ describe('CalculatorCasCommandRouterService', () => {
     }
   });
 
+  it('reports unsupported expansions through the public CAS engine', () => {
+    const execution = router.execute('expand(sin(x))');
+
+    expect(execution).not.toBeNull();
+    expect(execution?.ok).toBeFalse();
+    if (execution && !execution.ok) {
+      expect(execution.error.code).toBe('UNSUPPORTED_EXPRESSION');
+    }
+  });
+
   it('factors expressions through the public CAS engine', () => {
     const execution = router.execute('factor(x^2 - 1)');
 
@@ -55,14 +65,23 @@ describe('CalculatorCasCommandRouterService', () => {
   });
 
   it('supports diff as an alias for differentiate', () => {
-    const execution = router.execute('diff(sin(x), x)');
+    const diffExecution = router.execute('diff(sin(x ^ 2), x)');
+    const differentiateExecution = router.execute('differentiate(sin(x ^ 2), x)');
 
-    expect(execution).not.toBeNull();
-    expect(execution?.ok).toBeTrue();
-    if (execution?.ok) {
-      expect(execution.command).toBe('differentiate');
-      expect(execution.result.kind).toBe('symbolic');
-      expect(execution.result.display).toContain('cos(x)');
+    expect(diffExecution).not.toBeNull();
+    expect(differentiateExecution).not.toBeNull();
+    expect(diffExecution?.ok).toBeTrue();
+    expect(differentiateExecution?.ok).toBeTrue();
+    if (diffExecution?.ok && differentiateExecution?.ok) {
+      expect(diffExecution.command).toBe('differentiate');
+      expect(differentiateExecution.command).toBe('differentiate');
+      expect(diffExecution.result.kind).toBe('symbolic');
+      expect(differentiateExecution.result.kind).toBe('symbolic');
+      expect(diffExecution.result.display).toBe(
+        differentiateExecution.result.display
+      );
+      expect(diffExecution.result.display).toContain('2 * x');
+      expect(diffExecution.result.display).toContain('cos(x ^ 2)');
     }
   });
 
@@ -131,6 +150,27 @@ describe('CalculatorCasCommandRouterService', () => {
     expect(execution?.ok).toBeFalse();
     if (execution && !execution.ok) {
       expect(execution.error.code).toBe('CAS_COMMAND_ARITY_ERROR');
+    }
+  });
+
+  it('reports invalid variables after arity validation for differentiate commands', () => {
+    const execution = router.execute('diff(x, 5)');
+
+    expect(execution).not.toBeNull();
+    expect(execution?.ok).toBeFalse();
+    if (execution && !execution.ok) {
+      expect(execution.error.code).toBe('INVALID_VARIABLE');
+    }
+  });
+
+  it('preserves derivative error metadata for unsupported functions', () => {
+    const execution = router.execute('diff(factorial(x), x)');
+
+    expect(execution).not.toBeNull();
+    expect(execution?.ok).toBeFalse();
+    if (execution && !execution.ok) {
+      expect(execution.error.code).toBe('CAS_UNSUPPORTED_DERIVATIVE');
+      expect(execution.error.functionName).toBe('factorial');
     }
   });
 

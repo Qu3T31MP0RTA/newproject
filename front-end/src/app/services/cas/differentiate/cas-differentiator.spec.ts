@@ -13,6 +13,8 @@ describe('CAS differentiation', () => {
   it('derives constants, variables and other variables', () => {
     const cases: Array<[string, string, string]> = [
       ['5', 'x', '0'],
+      ['pi', 'x', '0'],
+      ['e', 'x', '0'],
       ['x', 'x', '1'],
       ['y', 'x', '0'],
     ];
@@ -33,6 +35,9 @@ describe('CAS differentiation', () => {
   it('derives polynomials and basic products and quotients', () => {
     const cases: Array<[string, string]> = [
       ['x ^ 2', '2 * x'],
+      ['2 ^ x', 'ln(2) * 2 ^ x'],
+      ['x ^ pi', 'pi * x ^ (pi - 1)'],
+      ['x ^ -1', '-1 * x ^ -2'],
       ['x ^ 3 + 2 * x ^ 2 + x + 1', '3 * x ^ 2 + 4 * x + 1'],
       ['(x + 1) * (x + 2)', '2 * x + 3'],
       ['x * y', 'y'],
@@ -113,6 +118,22 @@ describe('CAS differentiation', () => {
       ok: false,
       error: jasmine.objectContaining({
         code: 'UNSUPPORTED_EXPRESSION',
+      }),
+    });
+
+    const unsupportedFunction = parser.parse('factorial(x)');
+    expect(unsupportedFunction.ok).toBeTrue();
+    if (!unsupportedFunction.ok) return;
+
+    const unsupportedFunctionResult = differentiateCasExpression(
+      unsupportedFunction.value,
+      'x'
+    );
+    expect(unsupportedFunctionResult).toEqual({
+      ok: false,
+      error: jasmine.objectContaining({
+        code: 'CAS_UNSUPPORTED_DERIVATIVE',
+        functionName: 'factorial',
       }),
     });
 

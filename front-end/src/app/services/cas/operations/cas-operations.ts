@@ -4,8 +4,9 @@ import {
   symbolNode,
   type CasExpression,
 } from '../ast/cas-ast';
+import { createCasError } from '../errors/cas-errors';
 import { DEFAULT_CAS_LIMITS } from '../limits/cas-limits';
-import { casSuccess, type CasResult } from '../result/cas-result';
+import { casFailure, casSuccess, type CasResult } from '../result/cas-result';
 import {
   DEFAULT_CAS_EXPAND_OPTIONS,
   fromPolynomial,
@@ -37,7 +38,12 @@ export function expandCasExpression(
     maxTerms: options.maxTerms ?? DEFAULT_CAS_EXPAND_OPTIONS.maxTerms,
   });
   if (!polynomial.ok) {
-    return simplified;
+    return casFailure(
+      createCasError(
+        'UNSUPPORTED_EXPRESSION',
+        'La expresión contiene nodos no polinómicos.'
+      )
+    );
   }
 
   return casSuccess(fromPolynomial(polynomial.value), simplified.metadata);

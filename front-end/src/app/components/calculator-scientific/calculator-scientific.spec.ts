@@ -211,6 +211,30 @@ describe('CalculatorScientificComponent', () => {
     );
   });
 
+  it('evaluates symbolic differentiation commands through the same calculator flow', () => {
+    const calculationResult: CalculatorSymbolicComputationResult = {
+      kind: 'symbolic',
+      source: 'diff(x^2,x)',
+      operation: 'differentiate',
+      display: '2 * x',
+      exact: true,
+      expression: '2 * x',
+      latex: '2 * x',
+    };
+    calculatorState.expression = 'diff(x^2,x)';
+    calculatorState.calculationResult = calculationResult;
+    mockCalculator.evaluate.and.returnValue('2 * x' as never);
+
+    clickToken('=');
+
+    expect(mockCalculator.evaluate).toHaveBeenCalledOnceWith({ angleMode: 'RAD' });
+    expect(mockHistory.agregarId).toHaveBeenCalledWith(
+      'diff(x^2,x)',
+      '2 * x',
+      calculationResult
+    );
+  });
+
   it('captures evaluation errors without alerting or duplicating a message', () => {
     const alertSpy = spyOn(window, 'alert');
     const facadeError = {

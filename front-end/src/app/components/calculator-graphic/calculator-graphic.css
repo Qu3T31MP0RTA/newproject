@@ -10,16 +10,12 @@
   display: flex;
   width: 100%;
   max-width: 680px;
-  max-height: min(60dvh, 680px);
   min-width: 0;
   margin-inline: auto;
   padding: 2px 6px 8px;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  overflow-y: auto;
-  scrollbar-gutter: stable both-edges;
-  overscroll-behavior: contain;
 }
 
 .control-toolbar,
@@ -233,7 +229,6 @@
 
 @media (max-width: 500px) {
   .graphic-keyboard {
-    max-height: 64dvh;
     gap: 9px;
   }
 

@@ -9,6 +9,7 @@ import {
   type CasExpression,
   type CasFunctionCallNode,
   type CasUnaryNode,
+  symbolNode,
   unaryNode,
 } from '../ast/cas-ast';
 import { createCasError } from '../errors/cas-errors';
@@ -333,6 +334,11 @@ function simplifyDivision(
     return createDivisionResult(left.value, right.value);
   }
 
+  const monomialDivision = simplifyMonomialDivision(left, right);
+  if (monomialDivision !== null) {
+    return monomialDivision;
+  }
+
   return casSuccess(binaryNode('/', left, right));
 }
 
@@ -340,6 +346,21 @@ function simplifyPower(
   left: CasExpression,
   right: CasExpression
 ): CasResult<CasExpression> {
+  if (
+    left.kind === 'number' &&
+    right.kind === 'number' &&
+    left.value === 0 &&
+    right.value === 0
+  ) {
+    return casFailure(
+      createCasError('UNSUPPORTED_OPERATION', '0 ^ 0 es indeterminado en CAS.2.')
+    );
+  }
+
+  if (right.kind === 'number' && right.value === 0) {
+    return createNumberResult(1);
+  }
+
   if (right.kind === 'number' && right.value === 1) {
     return casSuccess(left);
   }
@@ -349,15 +370,6 @@ function simplifyPower(
   }
 
   if (left.kind === 'number' && right.kind === 'number') {
-    if (left.value === 0 && right.value === 0) {
-      return casFailure(
-        createCasError(
-          'UNSUPPORTED_OPERATION',
-          '0 ^ 0 es indeterminado en CAS.2.'
-        )
-      );
-    }
-
     const powered = Math.pow(left.value, right.value);
     if (!Number.isFinite(powered)) {
       return casFailure(
@@ -372,6 +384,210 @@ function simplifyPower(
   }
 
   return casSuccess(binaryNode('^', left, right));
+}
+
+function simplifyMonomialDivision(
+  left: CasExpression,
+  right: CasExpression
+): CasResult<CasExpression> | null {
+  const numerator = extractMonomial(left);
+  const denominator = extractMonomial(right);
+
+  if (!numerator || !denominator) {
+    return null;
+  }
+
+  if (denominator.coefficient === 0) {
+    return casFailure(
+      createCasError('DIVISION_BY_ZERO', 'No se puede dividir entre cero.')
+    );
+  }
+
+  if (numerator.coefficient === 0) {
+    return null;
+  }
+
+  if (!canCancelMonomials(numerator.powers, denominator.powers)) {
+    return null;
+  }
+
+  const remainingPowers = subtractPowerMaps(numerator.powers, denominator.powers);
+  const coefficient = reduceExactRationalExpression(
+    numerator.coefficient,
+    denominator.coefficient
+  );
+
+  if (
+    Object.keys(remainingPowers).length === 0 &&
+    coefficient.kind === 'number' &&
+    Math.abs(coefficient.value) === 1
+  ) {
+    return null;
+  }
+
+  return casSuccess(buildMonomialExpression(coefficient, remainingPowers));
+}
+
+interface Monomial {
+  readonly coefficient: number;
+  readonly powers: Readonly<Record<string, number>>;
+}
+
+function extractMonomial(expression: CasExpression): Monomial | null {
+  switch (expression.kind) {
+    case 'number':
+      return {
+        coefficient: expression.value,
+        powers: {},
+      };
+    case 'symbol':
+      return {
+        coefficient: 1,
+        powers: { [expression.name]: 1 },
+      };
+    case 'unary': {
+      const operand = extractMonomial(expression.operand);
+      if (!operand) {
+        return null;
+      }
+
+      return {
+        coefficient: expression.operator === '-' ? -operand.coefficient : operand.coefficient,
+        powers: operand.powers,
+      };
+    }
+    case 'binary': {
+      if (expression.operator === '*') {
+        const left = extractMonomial(expression.left);
+        const right = extractMonomial(expression.right);
+        if (!left || !right) {
+          return null;
+        }
+
+        return {
+          coefficient: left.coefficient * right.coefficient,
+          powers: mergePowerMaps(left.powers, right.powers),
+        };
+      }
+
+      if (expression.operator === '^' && expression.right.kind === 'number') {
+        if (!Number.isInteger(expression.right.value) || expression.right.value < 0) {
+          return null;
+        }
+
+        const base = extractMonomial(expression.left);
+        if (!base) {
+          return null;
+        }
+
+        const exponent = expression.right.value;
+        if (exponent === 0) {
+          return {
+            coefficient: 1,
+            powers: {},
+          };
+        }
+
+        return {
+          coefficient: Math.pow(base.coefficient, exponent),
+          powers: multiplyPowerMap(base.powers, exponent),
+        };
+      }
+
+      return null;
+    }
+    case 'function':
+    case 'equation':
+      return null;
+    default: {
+      const _exhaustive: never = expression;
+      return _exhaustive;
+    }
+  }
+}
+
+function canCancelMonomials(
+  numerator: Readonly<Record<string, number>>,
+  denominator: Readonly<Record<string, number>>
+): boolean {
+  for (const [name, exponent] of Object.entries(denominator)) {
+    if ((numerator[name] ?? 0) < exponent) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function subtractPowerMaps(
+  numerator: Readonly<Record<string, number>>,
+  denominator: Readonly<Record<string, number>>
+): Readonly<Record<string, number>> {
+  const powers: Record<string, number> = {};
+
+  for (const [name, exponent] of Object.entries(numerator)) {
+    const next = exponent - (denominator[name] ?? 0);
+    if (next > 0) {
+      powers[name] = next;
+    }
+  }
+
+  return powers;
+}
+
+function mergePowerMaps(
+  left: Readonly<Record<string, number>>,
+  right: Readonly<Record<string, number>>
+): Readonly<Record<string, number>> {
+  const result: Record<string, number> = { ...left };
+  for (const [name, exponent] of Object.entries(right)) {
+    result[name] = (result[name] ?? 0) + exponent;
+  }
+  return result;
+}
+
+function multiplyPowerMap(
+  powers: Readonly<Record<string, number>>,
+  exponent: number
+): Readonly<Record<string, number>> {
+  const result: Record<string, number> = {};
+  for (const [name, power] of Object.entries(powers)) {
+    const next = power * exponent;
+    if (next > 0) {
+      result[name] = next;
+    }
+  }
+
+  return result;
+}
+
+function buildMonomialExpression(
+  coefficient: CasExpression,
+  powers: Readonly<Record<string, number>>
+): CasExpression {
+  const factors = Object.entries(powers)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([name, exponent]) =>
+      exponent === 1 ? symbolNode(name) : binaryNode('^', symbolNode(name), numberNode(exponent))
+    );
+
+  if (factors.length === 0) {
+    return coefficient;
+  }
+
+  const monomial = factors.reduce((left, right) => binaryNode('*', left, right));
+
+  if (coefficient.kind === 'number') {
+    if (coefficient.value === 1) {
+      return monomial;
+    }
+
+    if (coefficient.value === -1) {
+      return unaryNode('-', monomial);
+    }
+  }
+
+  return binaryNode('*', coefficient, monomial);
 }
 
 function collectTerms(

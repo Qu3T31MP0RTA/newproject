@@ -20,6 +20,30 @@ export interface CasOperationOptions {
   readonly limits?: Partial<CasLimits>;
 }
 
+const SUPPORTED_UNARY_FUNCTIONS = new Set([
+  'sin',
+  'cos',
+  'tan',
+  'asin',
+  'acos',
+  'atan',
+  'sinh',
+  'cosh',
+  'tanh',
+  'asinh',
+  'acosh',
+  'atanh',
+  'sech',
+  'csch',
+  'coth',
+  'ln',
+  'log',
+  'exp',
+  'expe',
+  'sqrt',
+  'cbrt',
+]);
+
 export function differentiateCasExpression(
   expression: CasExpression,
   variable: string,
@@ -36,12 +60,15 @@ export function differentiateCasExpression(
     return casFailure(
       createCasError(
         'TOO_COMPLEX',
-        'La expresión CAS supera el límite de complejidad.'
+        'La expresiÃ³n CAS supera el lÃ­mite de complejidad.'
       )
     );
   }
 
-  if (!dependsOnCasExpression(expression, normalizedVariable.value)) {
+  if (
+    findUnsupportedDerivativeFunctionName(expression) === null &&
+    !dependsOnCasExpression(expression, normalizedVariable.value)
+  ) {
     return casSuccess(numberNode(0), {
       depth: 1,
       nodeCount: 1,
@@ -69,7 +96,7 @@ export function differentiateCasExpression(
     return casFailure(
       createCasError(
         'TOO_COMPLEX',
-        'La derivada CAS supera el límite de complejidad.'
+        'La derivada CAS supera el lÃ­mite de complejidad.'
       )
     );
   }
@@ -185,21 +212,30 @@ function differentiateBinary(
       return casSuccess(
         binaryNode(
           '+',
-          multiplyChain([leftDerivative.value, node.right]),
-          multiplyChain([node.left, rightDerivative.value])
+          multiplyChain([leftDerivative.value, cloneCasExpression(node.right)]),
+          multiplyChain([cloneCasExpression(node.left), rightDerivative.value])
         )
       );
     case '/': {
       const numerator = binaryNode(
         '-',
-        multiplyChain([leftDerivative.value, node.right]),
-        multiplyChain([node.left, rightDerivative.value])
+        multiplyChain([leftDerivative.value, cloneCasExpression(node.right)]),
+        multiplyChain([cloneCasExpression(node.left), rightDerivative.value])
       );
-      const denominator = binaryNode('^', node.right, numberNode(2));
+      const denominator = binaryNode(
+        '^',
+        cloneCasExpression(node.right),
+        numberNode(2)
+      );
       return casSuccess(binaryNode('/', numerator, denominator));
     }
     case '^':
-      return differentiatePower(node, leftDerivative.value);
+      return differentiatePower(
+        node.left,
+        node.right,
+        variable,
+        limits
+      );
     default: {
       const _exhaustive: never = node.operator;
       return _exhaustive;
@@ -208,40 +244,99 @@ function differentiateBinary(
 }
 
 function differentiatePower(
-  node: CasBinaryNode,
-  baseDerivative: CasExpression
+  base: CasExpression,
+  exponent: CasExpression,
+  variable: string,
+  limits: CasLimits
 ): CasResult<CasExpression> {
-  if (node.right.kind !== 'number') {
-    return casFailure(
-      createCasError(
-        'UNSUPPORTED_EXPRESSION',
-        'La regla general de potencias no está soportada.'
-      )
-    );
+  const unsupportedFunctionName =
+    findUnsupportedDerivativeFunctionName(base) ??
+    findUnsupportedDerivativeFunctionName(exponent);
+  if (unsupportedFunctionName) {
+    return unsupportedDerivativeError(unsupportedFunctionName);
   }
 
-  if (!Number.isInteger(node.right.value) || node.right.value < 0) {
-    return casFailure(
-      createCasError(
-        'UNSUPPORTED_EXPRESSION',
-        'Los exponentes simbólicos deben ser enteros no negativos.'
-      )
-    );
-  }
+  const baseDepends = dependsOnNode(base, variable);
+  const exponentDepends = dependsOnNode(exponent, variable);
 
-  if (node.right.value === 0) {
+  if (!baseDepends && !exponentDepends) {
     return casSuccess(numberNode(0));
   }
 
-  if (node.right.value === 1) {
-    return casSuccess(baseDerivative);
+  if (!exponentDepends) {
+    const baseDerivative = differentiateNode(base, variable, limits);
+    if (!baseDerivative.ok) {
+      return baseDerivative;
+    }
+
+    return differentiateConstantExponentPower(
+      base,
+      exponent,
+      baseDerivative.value
+    );
+  }
+
+  if (!baseDepends) {
+    return differentiateConstantBasePower(
+      base,
+      exponent,
+      variable,
+      limits
+    );
+  }
+
+  return casFailure(
+    createCasError(
+      'CAS_UNSUPPORTED_DERIVATIVE',
+      'La regla general de potencias no estÃ¡ soportada simbÃ³licamente.'
+    )
+  );
+}
+
+function differentiateConstantExponentPower(
+  base: CasExpression,
+  exponent: CasExpression,
+  baseDerivative: CasExpression
+): CasResult<CasExpression> {
+  return casSuccess(
+    multiplyChain([
+      cloneCasExpression(exponent),
+      binaryNode(
+        '^',
+        cloneCasExpression(base),
+        binaryNode('-', cloneCasExpression(exponent), numberNode(1))
+      ),
+      baseDerivative,
+    ])
+  );
+}
+
+function differentiateConstantBasePower(
+  base: CasExpression,
+  exponent: CasExpression,
+  variable: string,
+  limits: CasLimits
+): CasResult<CasExpression> {
+  if (base.kind === 'number') {
+    if (base.value === 1) {
+      return casSuccess(numberNode(0));
+    }
+
+    if (base.value <= 0) {
+      return unsupportedDerivativeError(undefined);
+    }
+  }
+
+  const exponentDerivative = differentiateNode(exponent, variable, limits);
+  if (!exponentDerivative.ok) {
+    return exponentDerivative;
   }
 
   return casSuccess(
     multiplyChain([
-      numberNode(node.right.value),
-      binaryNode('^', node.left, numberNode(node.right.value - 1)),
-      baseDerivative,
+      binaryNode('^', cloneCasExpression(base), cloneCasExpression(exponent)),
+      functionCallNode('ln', [cloneCasExpression(base)]),
+      exponentDerivative.value,
     ])
   );
 }
@@ -251,21 +346,20 @@ function differentiateFunction(
   variable: string,
   limits: CasLimits
 ): CasResult<CasExpression> {
-  if (node.arguments.length === 0) {
-    return casSuccess(numberNode(0));
-  }
-
   if (node.name === 'pow') {
     return differentiatePowerFunction(node, variable, limits);
   }
 
+  if (!SUPPORTED_UNARY_FUNCTIONS.has(node.name)) {
+    return unsupportedDerivativeError(node.name);
+  }
+
+  if (node.arguments.length === 0) {
+    return casSuccess(numberNode(0));
+  }
+
   if (node.arguments.length !== 1) {
-    return casFailure(
-      createCasError(
-        'UNSUPPORTED_OPERATION',
-        `La función ${node.name} no está soportada simbólicamente.`
-      )
-    );
+    return unsupportedDerivativeError(node.name);
   }
 
   const argument = node.arguments[0];
@@ -279,7 +373,7 @@ function differentiateFunction(
       return casSuccess(
         multiplyChain([
           argumentDerivative.value,
-          functionCallNode('cos', [argument]),
+          functionCallNode('cos', [cloneCasExpression(argument)]),
         ])
       );
     case 'cos':
@@ -287,7 +381,7 @@ function differentiateFunction(
         multiplyChain([
           numberNode(-1),
           argumentDerivative.value,
-          functionCallNode('sin', [argument]),
+          functionCallNode('sin', [cloneCasExpression(argument)]),
         ])
       );
     case 'tan':
@@ -297,20 +391,185 @@ function differentiateFunction(
           argumentDerivative.value,
           binaryNode(
             '^',
-            functionCallNode('cos', [argument]),
+            functionCallNode('cos', [cloneCasExpression(argument)]),
             numberNode(2)
           )
         )
       );
+    case 'asin':
+      return casSuccess(
+        binaryNode(
+          '/',
+          argumentDerivative.value,
+          functionCallNode('sqrt', [
+            binaryNode(
+              '-',
+              numberNode(1),
+              binaryNode(
+                '^',
+                cloneCasExpression(argument),
+                numberNode(2)
+              )
+            ),
+          ])
+        )
+      );
+    case 'acos':
+      return casSuccess(
+        multiplyChain([
+          numberNode(-1),
+          binaryNode(
+            '/',
+            argumentDerivative.value,
+            functionCallNode('sqrt', [
+              binaryNode(
+                '-',
+                numberNode(1),
+                binaryNode(
+                  '^',
+                  cloneCasExpression(argument),
+                  numberNode(2)
+                )
+              ),
+            ])
+          ),
+        ])
+      );
+    case 'atan':
+      return casSuccess(
+        binaryNode(
+          '/',
+          argumentDerivative.value,
+          binaryNode(
+            '+',
+            numberNode(1),
+            binaryNode(
+              '^',
+              cloneCasExpression(argument),
+              numberNode(2)
+            )
+          )
+        )
+      );
+    case 'sinh':
+      return casSuccess(
+        multiplyChain([
+          argumentDerivative.value,
+          functionCallNode('cosh', [cloneCasExpression(argument)]),
+        ])
+      );
+    case 'cosh':
+      return casSuccess(
+        multiplyChain([
+          argumentDerivative.value,
+          functionCallNode('sinh', [cloneCasExpression(argument)]),
+        ])
+      );
+    case 'tanh':
+      return casSuccess(
+        binaryNode(
+          '/',
+          argumentDerivative.value,
+          binaryNode(
+            '^',
+            functionCallNode('cosh', [cloneCasExpression(argument)]),
+            numberNode(2)
+          )
+        )
+      );
+    case 'asinh':
+      return casSuccess(
+        binaryNode(
+          '/',
+          argumentDerivative.value,
+          functionCallNode('sqrt', [
+            binaryNode(
+              '+',
+              binaryNode(
+                '^',
+                cloneCasExpression(argument),
+                numberNode(2)
+              ),
+              numberNode(1)
+            ),
+          ])
+        )
+      );
+    case 'acosh':
+      return casSuccess(
+        binaryNode(
+          '/',
+          argumentDerivative.value,
+          binaryNode(
+            '*',
+            functionCallNode('sqrt', [
+              binaryNode('-', cloneCasExpression(argument), numberNode(1)),
+            ]),
+            functionCallNode('sqrt', [
+              binaryNode('+', cloneCasExpression(argument), numberNode(1)),
+            ])
+          )
+        )
+      );
+    case 'atanh':
+      return casSuccess(
+        binaryNode(
+          '/',
+          argumentDerivative.value,
+          binaryNode(
+            '-',
+            numberNode(1),
+            binaryNode(
+              '^',
+              cloneCasExpression(argument),
+              numberNode(2)
+            )
+          )
+        )
+      );
+    case 'sech':
+      return casSuccess(
+        multiplyChain([
+          numberNode(-1),
+          functionCallNode('sech', [cloneCasExpression(argument)]),
+          functionCallNode('tanh', [cloneCasExpression(argument)]),
+          argumentDerivative.value,
+        ])
+      );
+    case 'csch':
+      return casSuccess(
+        multiplyChain([
+          numberNode(-1),
+          functionCallNode('csch', [cloneCasExpression(argument)]),
+          functionCallNode('coth', [cloneCasExpression(argument)]),
+          argumentDerivative.value,
+        ])
+      );
+    case 'coth':
+      return casSuccess(
+        multiplyChain([
+          numberNode(-1),
+          argumentDerivative.value,
+          binaryNode(
+            '/',
+            numberNode(1),
+            binaryNode(
+              '^',
+              functionCallNode('sinh', [cloneCasExpression(argument)]),
+              numberNode(2)
+            )
+          )
+        ])
+      );
     case 'ln':
     case 'log':
-      return casSuccess(binaryNode('/', argumentDerivative.value, argument));
+      return casSuccess(binaryNode('/', argumentDerivative.value, cloneCasExpression(argument)));
     case 'exp':
     case 'expe':
       return casSuccess(
         multiplyChain([
           argumentDerivative.value,
-          functionCallNode(node.name, [argument]),
+          functionCallNode(node.name, [cloneCasExpression(argument)]),
         ])
       );
     case 'sqrt':
@@ -320,17 +579,27 @@ function differentiateFunction(
           argumentDerivative.value,
           multiplyChain([
             numberNode(2),
-            functionCallNode('sqrt', [argument]),
+            functionCallNode('sqrt', [cloneCasExpression(argument)]),
+          ])
+        )
+      );
+    case 'cbrt':
+      return casSuccess(
+        binaryNode(
+          '/',
+          argumentDerivative.value,
+          multiplyChain([
+            numberNode(3),
+            binaryNode(
+              '^',
+              functionCallNode('cbrt', [cloneCasExpression(argument)]),
+              numberNode(2)
+            ),
           ])
         )
       );
     default:
-      return casFailure(
-        createCasError(
-          'UNSUPPORTED_OPERATION',
-          `La función ${node.name} no está soportada simbólicamente.`
-        )
-      );
+      return unsupportedDerivativeError(node.name);
   }
 }
 
@@ -340,47 +609,14 @@ function differentiatePowerFunction(
   limits: CasLimits
 ): CasResult<CasExpression> {
   if (node.arguments.length !== 2) {
-    return casFailure(
-      createCasError(
-        'UNSUPPORTED_OPERATION',
-        'pow requiere dos argumentos para derivación simbólica.'
-      )
-    );
+    return unsupportedDerivativeError('pow');
   }
 
-  const [base, exponent] = node.arguments;
-  if (
-    exponent.kind !== 'number' ||
-    !Number.isInteger(exponent.value) ||
-    exponent.value < 0
-  ) {
-    return casFailure(
-      createCasError(
-        'UNSUPPORTED_EXPRESSION',
-        'pow sólo admite exponentes enteros no negativos.'
-      )
-    );
-  }
-
-  const baseDerivative = differentiateNode(base, variable, limits);
-  if (!baseDerivative.ok) {
-    return baseDerivative;
-  }
-
-  if (exponent.value === 0) {
-    return casSuccess(numberNode(0));
-  }
-
-  if (exponent.value === 1) {
-    return casSuccess(baseDerivative.value);
-  }
-
-  return casSuccess(
-    multiplyChain([
-      numberNode(exponent.value),
-      binaryNode('^', base, numberNode(exponent.value - 1)),
-      baseDerivative.value,
-    ])
+  return differentiatePower(
+    node.arguments[0],
+    node.arguments[1],
+    variable,
+    limits
   );
 }
 
@@ -411,6 +647,42 @@ function multiplyChain(items: readonly CasExpression[]): CasExpression {
     (left, right) => binaryNode('*', left, right),
     items[0]
   );
+}
+
+function cloneCasExpression(expression: CasExpression): CasExpression {
+  switch (expression.kind) {
+    case 'number':
+      return numberNode(expression.value);
+    case 'symbol':
+      return { kind: 'symbol', name: expression.name };
+    case 'unary':
+      return {
+        kind: 'unary',
+        operator: expression.operator,
+        operand: cloneCasExpression(expression.operand),
+      };
+    case 'binary':
+      return {
+        kind: 'binary',
+        operator: expression.operator,
+        left: cloneCasExpression(expression.left),
+        right: cloneCasExpression(expression.right),
+      };
+    case 'function':
+      return functionCallNode(
+        expression.name,
+        expression.arguments.map(argument => cloneCasExpression(argument))
+      );
+    case 'equation':
+      return equationNode(
+        cloneCasExpression(expression.left),
+        cloneCasExpression(expression.right)
+      );
+    default: {
+      const _exhaustive: never = expression;
+      return _exhaustive;
+    }
+  }
 }
 
 function normalizeVariableName(variable: string): string | null {
@@ -444,6 +716,66 @@ function dependsOnNode(expression: CasExpression, variable: string): boolean {
       return _exhaustive;
     }
   }
+}
+
+function findUnsupportedDerivativeFunctionName(
+  expression: CasExpression
+): string | null {
+  switch (expression.kind) {
+    case 'number':
+    case 'symbol':
+      return null;
+    case 'unary':
+      return findUnsupportedDerivativeFunctionName(expression.operand);
+    case 'binary':
+      return (
+        findUnsupportedDerivativeFunctionName(expression.left) ??
+        findUnsupportedDerivativeFunctionName(expression.right)
+      );
+    case 'equation':
+      return (
+        findUnsupportedDerivativeFunctionName(expression.left) ??
+        findUnsupportedDerivativeFunctionName(expression.right)
+      );
+    case 'function':
+      if (expression.name === 'pow') {
+        if (expression.arguments.length !== 2) {
+          return expression.name;
+        }
+      } else if (!SUPPORTED_UNARY_FUNCTIONS.has(expression.name)) {
+        return expression.name;
+      } else if (expression.arguments.length > 1) {
+        return expression.name;
+      }
+
+      for (const argument of expression.arguments) {
+        const unsupported = findUnsupportedDerivativeFunctionName(argument);
+        if (unsupported) {
+          return unsupported;
+        }
+      }
+
+      return null;
+    default: {
+      const _exhaustive: never = expression;
+      return _exhaustive;
+    }
+  }
+}
+
+function unsupportedDerivativeError(
+  functionName?: string
+): CasResult<CasExpression> {
+  return casFailure(
+    createCasError(
+      'CAS_UNSUPPORTED_DERIVATIVE',
+      functionName
+        ? `La funciÃ³n ${functionName} no estÃ¡ soportada simbÃ³licamente.`
+        : 'La regla general de potencias no estÃ¡ soportada simbÃ³licamente.',
+      undefined,
+      functionName
+    )
+  );
 }
 
 function withinLimits(

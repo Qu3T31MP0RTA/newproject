@@ -81,18 +81,22 @@ app-work-space {
 .calculator {
   display: flex;
   height: 100%;
+  min-height: 0;
   align-items: flex-start;
   justify-content: center;
   padding: clamp(16px, 2vw, 28px);
   background:
     linear-gradient(180deg, rgba(41, 41, 49, 0.3), transparent 38%),
     var(--shell-surface-raised);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
 }
 
 .calculation {
   display: flex;
   width: min(100%, 760px);
   min-width: 0;
+  min-height: 0;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;

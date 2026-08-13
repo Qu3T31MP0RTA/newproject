@@ -10,6 +10,7 @@ import {
   CalculatorCasCommandRouterService,
   type CalculatorCasCommandResult,
 } from '../cas/calculator-cas-command-router';
+import { CalculatorErrorMessageService } from './calculator-error-message';
 import { Tokenizer } from '../polish-services/tokenizer';
 import { detectGraphVariables } from '../polish-services/graph-variable-detector';
 import { createInitialCalculatorState } from './calculator-state';
@@ -29,6 +30,7 @@ export type CalculationContextUpdate = Partial<
 export class CalculatorFacade {
   private readonly engine = inject<CalculationEngine>(CALCULATION_ENGINE);
   private readonly commandRouter = inject(CalculatorCasCommandRouterService);
+  private readonly errorMessages = inject(CalculatorErrorMessageService);
   private readonly tokenizer = inject(Tokenizer);
   private readonly stateSubject = new BehaviorSubject<CalculatorState>(
     createInitialCalculatorState()
@@ -132,15 +134,16 @@ export class CalculatorFacade {
     const commandResult = this.commandRouter.execute(expression);
     if (commandResult) {
       if (!commandResult.ok) {
+        const message = this.errorMessages.getMessage(commandResult.error);
         this.update({
           status: 'error',
           error: {
             code: commandResult.error.code,
-            message: commandResult.error.message,
+            message,
           },
           calculationResult: null,
         });
-        throw new Error(commandResult.error.message);
+        throw new Error(message);
       }
 
       const resultDetails = this.mapCommandResult(commandResult.result);

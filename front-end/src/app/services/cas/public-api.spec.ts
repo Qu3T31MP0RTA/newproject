@@ -40,6 +40,18 @@ describe('CAS public API', () => {
     expect(factored.value.text).toBe('(x - 1) * (x + 1)');
   });
 
+  it('rejects unsupported expansions end to end', () => {
+    const engine = createCasEngine();
+
+    const expanded = engine.expandText('sin(x)');
+    expect(expanded).toEqual({
+      ok: false,
+      error: jasmine.objectContaining({
+        code: 'UNSUPPORTED_EXPRESSION',
+      }),
+    });
+  });
+
   it('supports differentiation end to end', () => {
     const engine = createCasEngine();
 
@@ -58,6 +70,12 @@ describe('CAS public API', () => {
     if (!differentiatedText.ok) return;
 
     expect(differentiatedText.value.text).toBe('2 * x * cos(x ^ 2)');
+
+    const powerText = engine.differentiateText('2 ^ x', 'x');
+    expect(powerText.ok).toBeTrue();
+    if (!powerText.ok) return;
+
+    expect(powerText.value.text).toBe('ln(2) * 2 ^ x');
   });
 
   it('supports solving end to end', () => {

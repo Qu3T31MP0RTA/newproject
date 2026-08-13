@@ -43,6 +43,7 @@ export interface CalculatorCasCommandFailure {
 export interface CalculatorCasCommandError {
   readonly code: string;
   readonly message: string;
+  readonly functionName?: string;
 }
 
 export type CalculatorCasCommandExecution =

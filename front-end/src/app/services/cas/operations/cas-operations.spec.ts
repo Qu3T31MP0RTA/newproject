@@ -8,8 +8,10 @@ describe('CAS operations', () => {
 
   it('expands distributive products and powers', () => {
     const cases: Array<[string, string]> = [
+      ['x * (x + 1)', 'x ^ 2 + x'],
       ['2 * (x + 3)', '2 * x + 6'],
       ['(x + 1) * (x + 2)', 'x ^ 2 + 3 * x + 2'],
+      ['(x + 1) * (x - 1)', 'x ^ 2 + -1'],
       ['(x + y) * z', 'x * z + y * z'],
       ['(x + 1) ^ 2', 'x ^ 2 + 2 * x + 1'],
       ['(x - 1) ^ 2', 'x ^ 2 + -2 * x + 1'],

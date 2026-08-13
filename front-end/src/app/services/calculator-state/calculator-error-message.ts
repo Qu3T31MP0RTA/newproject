@@ -1,0 +1,40 @@
+import { Injectable } from '@angular/core';
+
+export interface CalculatorErrorLike {
+  readonly code: string;
+  readonly message: string;
+  readonly functionName?: string;
+}
+
+@Injectable({ providedIn: 'root' })
+export class CalculatorErrorMessageService {
+  getMessage(error: CalculatorErrorLike): string {
+    switch (error.code) {
+      case 'CAS_COMMAND_ARITY_ERROR':
+        return 'Número incorrecto de argumentos.';
+      case 'CAS_COMMAND_SYNTAX_ERROR':
+        return 'La sintaxis del comando CAS es inválida.';
+      case 'CAS_COMMAND_UNSUPPORTED':
+        return error.functionName
+          ? `El comando CAS "${error.functionName}" no está soportado.`
+          : 'El comando CAS no está soportado.';
+      case 'INVALID_VARIABLE':
+        return 'La variable de derivación no es válida.';
+      case 'CAS_UNSUPPORTED_DERIVATIVE':
+        return error.functionName
+          ? `No se puede derivar la función "${error.functionName}".`
+          : 'La función no admite derivación simbólica.';
+      case 'UNSUPPORTED_EXPRESSION':
+      case 'UNSUPPORTED_OPERATION':
+        return 'No se pudo procesar la expresión.';
+      case 'DIVISION_BY_ZERO':
+        return 'No se puede dividir entre cero.';
+      case 'TOO_COMPLEX':
+        return 'La expresión supera el límite de complejidad.';
+      case 'ITERATION_LIMIT':
+        return 'La simplificación no convergió dentro del límite permitido.';
+      default:
+        return error.message;
+    }
+  }
+}

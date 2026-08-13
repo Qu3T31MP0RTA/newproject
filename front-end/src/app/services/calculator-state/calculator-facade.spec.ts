@@ -203,7 +203,61 @@ describe('CalculatorFacade', () => {
       exact: true,
       expression: '5 * x',
       latex: '5 * x',
+      } as CalculatorComputationResult);
+  });
+
+  it('evaluates expand CAS commands through the public router', () => {
+    facade.setExpression('expand((x + 1)^2)');
+
+    const result = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(result).toBe('x ^ 2 + 2 * x + 1');
+    expect(facade.snapshot.expression).toBe('x ^ 2 + 2 * x + 1');
+    expect(facade.snapshot.result).toBe('x ^ 2 + 2 * x + 1');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'symbolic',
+      operation: 'expand',
+      source: 'expand((x + 1)^2)',
+      display: 'x ^ 2 + 2 * x + 1',
+      exact: true,
+      expression: 'x ^ 2 + 2 * x + 1',
+      latex: 'x ^ 2 + 2 * x + 1',
     } as CalculatorComputationResult);
+  });
+
+  it('evaluates differentiate CAS commands through the public router', () => {
+    facade.setExpression('diff(sin(x ^ 2), x)');
+
+    const result = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(result).toBe('2 * x * cos(x ^ 2)');
+    expect(facade.snapshot.expression).toBe('2 * x * cos(x ^ 2)');
+    expect(facade.snapshot.result).toBe('2 * x * cos(x ^ 2)');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'symbolic',
+      operation: 'differentiate',
+      source: 'diff(sin(x ^ 2), x)',
+      display: '2 * x * cos(x ^ 2)',
+      exact: true,
+      expression: '2 * x * cos(x ^ 2)',
+      latex: '2 * x * cos(x ^ 2)',
+    } as CalculatorComputationResult);
+  });
+
+  it('maps CAS derivative errors to a readable message', () => {
+    facade.setExpression('diff(factorial(x), x)');
+
+    expect(() => facade.evaluate()).toThrowError(
+      'No se puede derivar la función "factorial".'
+    );
+
+    expect(facade.snapshot.status).toBe('error');
+    expect(facade.snapshot.error).toEqual({
+      code: 'CAS_UNSUPPORTED_DERIVATIVE',
+      message: 'No se puede derivar la función "factorial".',
+    });
   });
 
   it('evaluates solve CAS commands and stores the structured metadata', () => {

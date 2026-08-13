@@ -30,10 +30,14 @@ describe('simplifyCasExpression', () => {
       ['2 ^ 3', '8'],
       ['x + x', '2 * x'],
       ['2 * x + 3 * x', '5 * x'],
+      ['x * y + y * x', '2 * x * y'],
+      ['x * x * x', 'x ^ 3'],
+      ['x ^ 2 * x ^ 3', 'x ^ 5'],
+      ['x ^ 2 / x', 'x'],
+      ['(2 * x) / 2', 'x'],
       ['x - x', '0'],
       ['3 * x - x', '2 * x'],
       ['x ^ 2 + 2 * x ^ 2', '3 * x ^ 2'],
-      ['x * y + y * x', '2 * x * y'],
       ['2 * x + 3 + 4 * x - 1', '6 * x + 2'],
       ['x + 2 + 3', 'x + 5'],
       ['2 * 3 * x', '6 * x'],
@@ -56,7 +60,7 @@ describe('simplifyCasExpression', () => {
   it('does not apply unsafe identities', () => {
     const parser = new CasParser();
 
-    for (const source of ['x / x', 'x ^ 0', '0 / x', 'sqrt(x ^ 2)']) {
+    for (const source of ['x / x', '0 / x', 'sqrt(x ^ 2)']) {
       const parsed = parser.parse(source);
       expect(parsed.ok).withContext(source).toBeTrue();
       if (!parsed.ok) continue;
@@ -67,6 +71,19 @@ describe('simplifyCasExpression', () => {
 
       expect(formatCasExpression(simplified.value)).withContext(source).toBe(source);
     }
+  });
+
+  it('simplifies x ^ 0 to 1 as a safe algebraic identity', () => {
+    const parser = new CasParser();
+    const parsed = parser.parse('x ^ 0');
+    expect(parsed.ok).toBeTrue();
+    if (!parsed.ok) return;
+
+    const simplified = simplifyCasExpression(parsed.value);
+    expect(simplified.ok).toBeTrue();
+    if (!simplified.ok) return;
+
+    expect(formatCasExpression(simplified.value)).toBe('1');
   });
 
   it('keeps input immutable and converges deterministically', () => {
