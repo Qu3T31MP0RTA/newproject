@@ -42,15 +42,56 @@
     </ng-container>
 
     <ng-template #resultContent>
-      <span class="result-label">Resultado</span>
-      <output
-        class="result-value"
-        [class.result-empty]="vm.result === null"
-        [class.result-multiline]="vm.resultIsMultiline"
-      >
-        <span class="result-symbol" *ngIf="vm.result !== null" aria-hidden="true">=</span>
-        {{ vm.result ?? '—' }}
-      </output>
+      <ng-container *ngIf="vm.solveResult as solve; else plainResult">
+        <section class="solve-result" aria-label="Resultado de la ecuación">
+          <span class="result-label">{{ getSolveLabel(solve) }}</span>
+
+          <ng-container [ngSwitch]="solve.solutionKind">
+            <div *ngSwitchCase="'finite'" class="solve-solutions" role="list">
+              <div
+                *ngFor="let solution of solve.solutions"
+                class="solve-solution"
+                role="listitem"
+              >
+                <span class="solve-variable">{{ solve.variable }} =</span>
+                <code class="solve-expression">{{ solution }}</code>
+              </div>
+
+              <section
+                *ngIf="solve.conditions?.length"
+                class="solve-conditions"
+                aria-label="Condiciones de la solución"
+              >
+                <span class="result-label">
+                  {{ solve.conditions!.length === 1 ? 'Condición' : 'Condiciones' }}
+                </span>
+                <ul class="solve-conditions-list">
+                  <li *ngFor="let condition of solve.conditions">
+                    <code class="solve-condition">{{ condition }}</code>
+                  </li>
+                </ul>
+              </section>
+            </div>
+
+            <span *ngSwitchCase="'none'" class="result-label solve-state">Sin solución</span>
+            <span *ngSwitchCase="'infinite'" class="result-label solve-state">
+              Infinitas soluciones
+            </span>
+          </ng-container>
+        </section>
+      </ng-container>
+
+      <ng-template #plainResult>
+        <span class="result-label">Resultado</span>
+        <output
+          class="result-value"
+          [class.result-empty]="vm.result === null"
+          [class.result-multiline]="vm.resultIsMultiline"
+        >
+          <span class="result-symbol" *ngIf="vm.result !== null" aria-hidden="true">=</span>
+          {{ vm.result ?? '—' }}
+        </output>
+      </ng-template>
     </ng-template>
   </div>
 </section>

@@ -96,6 +96,40 @@
   gap: 7px;
 }
 
+.cas-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cas-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cas-group-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cas-group-header h3 {
+  margin: 0;
+  color: #f0f4fb;
+  font-size: 0.77rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cas-group-header p {
+  margin: 0;
+  color: #aeb2bf;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
 .cas-action {
   min-height: 60px;
   padding: 9px 10px 8px;
@@ -357,9 +391,25 @@
     text-align: left;
   }
 
+  .cas-groups {
+    gap: 10px;
+  }
+
   .cas-grid {
     grid-template-columns: repeat(auto-fit, minmax(144px, 1fr));
     gap: 6px;
+  }
+
+  .cas-group {
+    gap: 6px;
+  }
+
+  .cas-group-header h3 {
+    font-size: 0.72rem;
+  }
+
+  .cas-group-header p {
+    font-size: 0.68rem;
   }
 
   .cas-action {

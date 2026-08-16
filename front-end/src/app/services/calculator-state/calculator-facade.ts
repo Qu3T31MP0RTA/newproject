@@ -325,6 +325,7 @@ export class CalculatorFacade {
         variable: commandResult.variable ?? 'x',
         solutionKind: commandResult.solutionKind ?? 'finite',
         solutions: commandResult.solutions ?? [],
+        conditions: commandResult.conditions ?? [],
       };
     }
 
@@ -335,12 +336,16 @@ export class CalculatorFacade {
         | 'expand'
         | 'factor'
         | 'differentiate'
-        | 'integrate',
+        | 'integrate'
+        | 'limit'
+        | 'taylor'
+        | 'convergence',
       source: commandResult.source,
       display: commandResult.display,
       exact: commandResult.exact,
       expression: commandResult.expression,
       latex: String(commandResult.latex),
+      ...(commandResult.metadata ? { metadata: commandResult.metadata } : {}),
     };
   }
 }

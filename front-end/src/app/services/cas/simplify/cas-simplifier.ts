@@ -39,7 +39,7 @@ export function simplifyCasExpression(
     return casFailure(
       createCasError(
         'TOO_COMPLEX',
-        'La expresión CAS supera el límite de complejidad.'
+        'La expresi�n CAS supera el l�mite de complejidad.'
       )
     );
   }
@@ -69,7 +69,7 @@ export function simplifyCasExpression(
           return casFailure(
             createCasError(
               'TOO_COMPLEX',
-              'La expresiÃ³n CAS supera el lÃ­mite de complejidad.'
+              'La expresión CAS supera el límite de complejidad.'
             )
           );
         }
@@ -92,7 +92,7 @@ export function simplifyCasExpression(
       return casFailure(
         createCasError(
           'TOO_COMPLEX',
-          'La expresión CAS supera el límite de complejidad.'
+          'La expresi�n CAS supera el l�mite de complejidad.'
         )
       );
     }
@@ -114,7 +114,7 @@ export function simplifyCasExpression(
   return casFailure(
     createCasError(
       'ITERATION_LIMIT',
-      'La simplificación CAS no convergió dentro del límite de iteraciones.'
+      'La simplificaci�n CAS no convergi� dentro del l�mite de iteraciones.'
     )
   );
 }
@@ -419,7 +419,7 @@ function simplifyPower(
       return casFailure(
         createCasError(
           'TOO_COMPLEX',
-          'El resultado numérico de la potencia no es finito.'
+          'El resultado num�rico de la potencia no es finito.'
         )
       );
     }
@@ -702,7 +702,7 @@ function withinLimits(
 function createNumberResult(value: number): CasResult<CasExpression> {
   if (!Number.isFinite(value)) {
     return casFailure(
-      createCasError('TOO_COMPLEX', 'El resultado numérico no es finito.')
+      createCasError('TOO_COMPLEX', 'El resultado num�rico no es finito.')
     );
   }
 
@@ -722,7 +722,7 @@ function createDivisionResult(
   const result = numerator / denominator;
   if (!Number.isFinite(result)) {
     return casFailure(
-      createCasError('TOO_COMPLEX', 'El resultado numérico no es finito.')
+      createCasError('TOO_COMPLEX', 'El resultado num�rico no es finito.')
     );
   }
 

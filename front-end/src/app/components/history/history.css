@@ -140,6 +140,37 @@ button:focus-visible {
   gap: 4px;
 }
 
+.history-solve {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-solve-solutions {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-solve-solution {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  overflow-wrap: anywhere;
+  color: var(--history-primary);
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.history-solve-variable {
+  color: var(--history-text);
+}
+
 .history-expression,
 .history-result {
   overflow-wrap: anywhere;
@@ -153,6 +184,30 @@ button:focus-visible {
 .history-result {
   color: var(--history-primary);
   font-size: 0.86rem;
+}
+
+.history-solve-conditions {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.history-solve-conditions-list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--history-text);
+}
+
+.history-solve-condition {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .history-divider {

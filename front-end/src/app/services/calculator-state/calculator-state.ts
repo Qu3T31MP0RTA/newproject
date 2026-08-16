@@ -1,4 +1,5 @@
 import type Complex from 'complex.js';
+import type { CasMetadata } from '../cas/ast/cas-ast';
 
 export type CalculatorValue = number | Complex;
 export type CalculatorResult = CalculatorValue | string;
@@ -58,12 +59,13 @@ export interface CalculatorNumericComputationResult {
 
 export interface CalculatorSymbolicComputationResult {
   kind: 'symbolic';
-  operation: 'simplify' | 'expand' | 'factor' | 'differentiate' | 'integrate';
+  operation: 'simplify' | 'expand' | 'factor' | 'differentiate' | 'integrate' | 'limit' | 'taylor' | 'convergence';
   source: string;
   display: string;
   exact: boolean;
   expression: string;
   latex: string;
+  metadata?: CasMetadata;
 }
 
 export interface CalculatorEquationSolutionsComputationResult {
@@ -77,6 +79,7 @@ export interface CalculatorEquationSolutionsComputationResult {
   variable: string;
   solutionKind: 'finite' | 'none' | 'infinite';
   solutions: readonly string[];
+  conditions?: readonly string[];
 }
 
 export type CalculatorComputationResult =

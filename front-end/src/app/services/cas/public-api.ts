@@ -7,7 +7,10 @@ export * from './polynomial/cas-polynomial';
 export * from './operations/cas-operations';
 export * from './differentiate/cas-differentiator';
 export * from './integrate/cas-integrator';
+export * from './limit/cas-limit';
+export * from './convergence/cas-series-convergence';
 export * from './solve/cas-solver';
+export * from './taylor/cas-taylor';
 export * from './simplify/cas-simplifier';
 export * from './format/cas-formatter';
 
@@ -30,10 +33,29 @@ import {
   integrateCasText,
 } from './integrate/cas-integrator';
 import {
+  limitCasExpression,
+  limitCasText,
+  type CasLimitOptions,
+  type CasLimitExpressionResult,
+  type CasLimitTextResult,
+} from './limit/cas-limit';
+import {
+  analyzeSeriesConvergence as analyzeSeriesConvergenceCas,
+  analyzeSeriesConvergenceText as analyzeSeriesConvergenceTextCas,
+  type CasSeriesConvergenceResult,
+  type CasSeriesConvergenceTextResult,
+} from './convergence/cas-series-convergence';
+import {
   solveCasExpression,
   solveCasText,
   type CasSolveResult,
 } from './solve/cas-solver';
+import {
+  taylorCasExpression,
+  maclaurinCasExpression,
+  taylorCasText,
+  maclaurinCasText,
+} from './taylor/cas-taylor';
 import type { CasExpression } from './ast/cas-ast';
 import type { CasResult } from './result/cas-result';
 import type { CasTextResult } from './simplify/cas-simplifier';
@@ -53,6 +75,31 @@ export interface CasEngine {
     variable: string,
     options?: CasOperationOptions
   ): CasResult<CasExpression>;
+  limit(
+    expression: CasExpression,
+    variable: string,
+    point: CasExpression,
+    options?: CasLimitOptions
+  ): CasResult<CasLimitExpressionResult>;
+  analyzeSeriesConvergence(
+    expression: CasExpression,
+    variable: string,
+    center: CasExpression,
+    options?: CasOperationOptions
+  ): CasResult<CasSeriesConvergenceResult>;
+  taylor(
+    expression: CasExpression,
+    variable: string,
+    center: CasExpression,
+    order: number,
+    options?: CasOperationOptions
+  ): CasResult<CasExpression>;
+  maclaurin(
+    expression: CasExpression,
+    variable: string,
+    order: number,
+    options?: CasOperationOptions
+  ): CasResult<CasExpression>;
   simplifyText(source: string): CasResult<CasTextResult>;
   expandText(source: string): CasResult<CasTextResult>;
   factorText(source: string): CasResult<CasTextResult>;
@@ -64,6 +111,31 @@ export interface CasEngine {
   integrateText(
     source: string,
     variable: string,
+    options?: CasOperationOptions
+  ): CasResult<CasTextResult>;
+  limitText(
+    source: string,
+    variable: string,
+    pointSource: string,
+    options?: CasLimitOptions
+  ): CasResult<CasLimitTextResult>;
+  analyzeSeriesConvergenceText(
+    source: string,
+    variable: string,
+    centerSource: string,
+    options?: CasOperationOptions
+  ): CasResult<CasSeriesConvergenceTextResult>;
+  taylorText(
+    source: string,
+    variable: string,
+    centerSource: string,
+    order: number,
+    options?: CasOperationOptions
+  ): CasResult<CasTextResult>;
+  maclaurinText(
+    source: string,
+    variable: string,
+    order: number,
     options?: CasOperationOptions
   ): CasResult<CasTextResult>;
   solve(expression: CasExpression, variable: string, options?: CasOperationOptions): CasSolveResult;
@@ -106,6 +178,43 @@ export class DefaultCasEngine implements CasEngine {
     return integrateCasExpression(expression, variable, options);
   }
 
+  limit(
+    expression: CasExpression,
+    variable: string,
+    point: CasExpression,
+    options?: CasLimitOptions
+  ): CasResult<CasLimitExpressionResult> {
+    return limitCasExpression(expression, variable, point, options);
+  }
+
+  analyzeSeriesConvergence(
+    expression: CasExpression,
+    variable: string,
+    center: CasExpression,
+    options?: CasOperationOptions
+  ): CasResult<CasSeriesConvergenceResult> {
+    return analyzeSeriesConvergenceCas(expression, variable, center, options);
+  }
+
+  taylor(
+    expression: CasExpression,
+    variable: string,
+    center: CasExpression,
+    order: number,
+    options?: CasOperationOptions
+  ): CasResult<CasExpression> {
+    return taylorCasExpression(expression, variable, center, order, options);
+  }
+
+  maclaurin(
+    expression: CasExpression,
+    variable: string,
+    order: number,
+    options?: CasOperationOptions
+  ): CasResult<CasExpression> {
+    return maclaurinCasExpression(expression, variable, order, options);
+  }
+
   solve(
     expression: CasExpression,
     variable: string,
@@ -140,6 +249,49 @@ export class DefaultCasEngine implements CasEngine {
     options?: CasOperationOptions
   ): CasResult<CasTextResult> {
     return integrateCasText(source, variable, this.parser, options);
+  }
+
+  limitText(
+    source: string,
+    variable: string,
+    pointSource: string,
+    options?: CasLimitOptions
+  ): CasResult<CasLimitTextResult> {
+    return limitCasText(source, variable, pointSource, this.parser, options);
+  }
+
+  analyzeSeriesConvergenceText(
+    source: string,
+    variable: string,
+    centerSource: string,
+    options?: CasOperationOptions
+  ): CasResult<CasSeriesConvergenceTextResult> {
+    return analyzeSeriesConvergenceTextCas(
+      source,
+      variable,
+      centerSource,
+      this.parser,
+      options
+    );
+  }
+
+  taylorText(
+    source: string,
+    variable: string,
+    centerSource: string,
+    order: number,
+    options?: CasOperationOptions
+  ): CasResult<CasTextResult> {
+    return taylorCasText(source, variable, centerSource, order, this.parser, options);
+  }
+
+  maclaurinText(
+    source: string,
+    variable: string,
+    order: number,
+    options?: CasOperationOptions
+  ): CasResult<CasTextResult> {
+    return maclaurinCasText(source, variable, order, this.parser, options);
   }
 
   solveText(

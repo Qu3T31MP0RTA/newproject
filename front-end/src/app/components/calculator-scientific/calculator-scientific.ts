@@ -11,6 +11,12 @@ import {
   type CasQuickAction,
 } from './cas-quick-actions';
 
+interface CasQuickActionGroup {
+  readonly title: string;
+  readonly description: string;
+  readonly actions: readonly CasQuickAction[];
+}
+
 @Component({
   selector: 'app-calculator-scientific',
   standalone: true,
@@ -23,6 +29,29 @@ export class CalculatorScientificComponent {
   showMemoryButtons = false;
   showCasTools = false;
   readonly casQuickActions = CAS_QUICK_ACTIONS;
+  readonly casQuickActionGroups: readonly CasQuickActionGroup[] = [
+    {
+      title: 'Álgebra',
+      description: 'Simplificar, expandir, factorizar y resolver.',
+      actions: CAS_QUICK_ACTIONS.filter(action =>
+        ['simplify', 'expand', 'factor', 'solve'].includes(action.id)
+      ),
+    },
+    {
+      title: 'Cálculo',
+      description: 'Derivar, integrar y trabajar con límites.',
+      actions: CAS_QUICK_ACTIONS.filter(action =>
+        ['differentiate', 'integrate', 'limit'].includes(action.id)
+      ),
+    },
+    {
+      title: 'Series',
+      description: 'Taylor, Maclaurin y convergencia.',
+      actions: CAS_QUICK_ACTIONS.filter(action =>
+        ['taylor', 'maclaurin', 'convergence'].includes(action.id)
+      ),
+    },
+  ];
 
   constructor(
     private calculator: CalculatorFacade,

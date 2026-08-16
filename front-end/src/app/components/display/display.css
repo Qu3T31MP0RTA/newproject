@@ -123,6 +123,67 @@
   border-top: 1px solid rgba(91, 96, 110, 0.34);
 }
 
+.solve-result {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.solve-solutions {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.solve-solution {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  overflow-wrap: anywhere;
+  color: var(--display-accent);
+  font-family: "JetBrains Mono", Consolas, monospace;
+  font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.solve-variable {
+  color: #c7cbda;
+}
+
+.solve-expression,
+.solve-condition {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.solve-conditions {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.solve-conditions-list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #e5e2ec;
+}
+
+.solve-state {
+  color: var(--display-accent);
+}
+
 .result-value {
   display: flex;
   min-width: 0;

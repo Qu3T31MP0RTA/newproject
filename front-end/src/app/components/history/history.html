@@ -33,10 +33,46 @@
 
       <div class="history-divider" aria-hidden="true"></div>
 
-      <div class="history-value">
-        <span class="history-label">Resultado</span>
-        <code class="history-result">{{ item.result }}</code>
-      </div>
+      <ng-container *ngIf="getSolveResult(item.calculationResult) as solve; else plainResult">
+        <section class="history-solve" aria-label="Resultado de la ecuación">
+          <span class="history-label">{{ getSolveHeading(solve) }}</span>
+
+          <ng-container [ngSwitch]="solve.solutionKind">
+            <div *ngSwitchCase="'finite'" class="history-solve-solutions" role="list">
+              <div
+                *ngFor="let solution of solve.solutions"
+                class="history-solve-solution"
+                role="listitem"
+              >
+                <span class="history-solve-variable">{{ solve.variable }} =</span>
+                <code class="history-solve-expression">{{ solution }}</code>
+              </div>
+
+              <section
+                *ngIf="solve.conditions?.length"
+                class="history-solve-conditions"
+                aria-label="Condiciones de la solución"
+              >
+                <span class="history-label">
+                  {{ solve.conditions!.length === 1 ? 'Condición' : 'Condiciones' }}
+                </span>
+                <ul class="history-solve-conditions-list">
+                  <li *ngFor="let condition of solve.conditions">
+                    <code class="history-solve-condition">{{ condition }}</code>
+                  </li>
+                </ul>
+              </section>
+            </div>
+          </ng-container>
+        </section>
+      </ng-container>
+
+      <ng-template #plainResult>
+        <div class="history-value">
+          <span class="history-label">Resultado</span>
+          <code class="history-result">{{ item.result }}</code>
+        </div>
+      </ng-template>
 
       <footer class="history-actions">
         <button

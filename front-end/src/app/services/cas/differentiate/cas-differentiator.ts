@@ -62,7 +62,7 @@ export function differentiateCasExpression(
     return casFailure(
       createCasError(
         'TOO_COMPLEX',
-        'La expresiÃ³n CAS supera el lÃ­mite de complejidad.'
+        'La expresión CAS supera el límite de complejidad.'
       )
     );
   }
@@ -98,7 +98,7 @@ export function differentiateCasExpression(
     return casFailure(
       createCasError(
         'TOO_COMPLEX',
-        'La derivada CAS supera el lÃ­mite de complejidad.'
+        'La derivada CAS supera el límite de complejidad.'
       )
     );
   }
@@ -290,7 +290,7 @@ function differentiatePower(
   return casFailure(
     createCasError(
       'CAS_UNSUPPORTED_DERIVATIVE',
-      'La regla general de potencias no estÃ¡ soportada simbÃ³licamente.'
+      'La regla general de potencias no está soportada simbólicamente.'
     )
   );
 }
@@ -779,8 +779,8 @@ function unsupportedDerivativeError(
     createCasError(
       'CAS_UNSUPPORTED_DERIVATIVE',
       functionName
-        ? `La funciÃ³n ${functionName} no estÃ¡ soportada simbÃ³licamente.`
-        : 'La regla general de potencias no estÃ¡ soportada simbÃ³licamente.',
+        ? `La función ${functionName} no está soportada simbólicamente.`
+        : 'La regla general de potencias no está soportada simbólicamente.',
       undefined,
       functionName
     )

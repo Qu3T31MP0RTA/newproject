@@ -315,13 +315,16 @@ describe('DisplayComponent with real CalculatorFacade', () => {
     fixture.detectChanges();
 
     expect(
-      fixture.nativeElement.querySelector('.result-value').classList.contains('result-multiline')
-    ).toBeTrue();
-    expect(fixture.nativeElement.querySelector('.result-value').textContent).toContain(
-      'x = -1'
+      fixture.nativeElement.querySelector('.solve-result .result-label').textContent.trim()
+    ).toBe('Soluciones');
+    expect(fixture.nativeElement.querySelector('.solve-solution').textContent).toContain(
+      'x ='
     );
-    expect(fixture.nativeElement.querySelector('.result-value').textContent).toContain(
-      'x = 1'
+    expect(fixture.nativeElement.querySelector('.solve-solutions').textContent).toContain(
+      '-1'
+    );
+    expect(fixture.nativeElement.querySelector('.solve-solutions').textContent).toContain(
+      '1'
     );
     expect(history.agregarId).toHaveBeenCalledOnceWith(
       'solve(x^2 - 1 = 0, x)',
@@ -331,7 +334,95 @@ describe('DisplayComponent with real CalculatorFacade', () => {
         operation: 'solve',
         variable: 'x',
         solutionKind: 'finite',
+        conditions: [],
       })
     );
+  });
+
+  it('renders a single solve result with the singular label', async () => {
+    const calculator = TestBed.inject(CalculatorFacade);
+    const input = fixture.nativeElement.querySelector(
+      '#calculatorInput'
+    ) as HTMLInputElement;
+
+    calculator.setExpression('solve(sqrt(x)=3,x)');
+    input.value = 'solve(sqrt(x)=3,x)';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true })
+    );
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.solve-result .result-label').textContent.trim()
+    ).toBe('Solución');
+    expect(fixture.nativeElement.querySelector('.solve-solutions').textContent).toContain(
+      'x = 9'
+    );
+  });
+
+  it('renders formal solve results with conditions', async () => {
+    const calculator = TestBed.inject(CalculatorFacade);
+    const input = fixture.nativeElement.querySelector(
+      '#calculatorInput'
+    ) as HTMLInputElement;
+
+    calculator.setExpression('solve(y * x + 2 = 0, x)');
+    input.value = 'solve(y * x + 2 = 0, x)';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true })
+    );
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.solve-result .result-label').textContent.trim())
+      .toBe('Solución formal');
+    expect(fixture.nativeElement.querySelector('.solve-solutions').textContent).toContain(
+      'x ='
+    );
+    expect(fixture.nativeElement.querySelector('.solve-solutions').textContent).toContain(
+      '-2 / y'
+    );
+    expect(fixture.nativeElement.querySelector('.solve-conditions').textContent).toContain(
+      'Condición'
+    );
+    expect(fixture.nativeElement.querySelector('.solve-conditions').textContent).toContain(
+      'y ≠ 0'
+    );
+  });
+
+  it('renders no-solution and infinite-solution solve states', async () => {
+    const calculator = TestBed.inject(CalculatorFacade);
+    const input = fixture.nativeElement.querySelector(
+      '#calculatorInput'
+    ) as HTMLInputElement;
+
+    calculator.setExpression('solve(sqrt(x) = -1, x)');
+    input.value = 'solve(sqrt(x) = -1, x)';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true })
+    );
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.solve-result .result-label').textContent.trim())
+      .toBe('Sin solución');
+
+    calculator.setExpression('solve(x = x, x)');
+    input.value = 'solve(x = x, x)';
+    input.dispatchEvent(new Event('input'));
+    await fixture.whenStable();
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true })
+    );
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.solve-result .result-label').textContent.trim())
+      .toBe('Infinitas soluciones');
   });
 });

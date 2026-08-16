@@ -1,5 +1,6 @@
 import { createCasError } from '../errors/cas-errors';
 import type { CasError } from '../errors/cas-errors';
+import type { CasSeriesConvergenceResult } from '../convergence/cas-series-convergence';
 
 export type CasExpression =
   | CasNumberNode
@@ -49,6 +50,13 @@ export interface CasMetadata {
   readonly depth?: number;
   readonly nodeCount?: number;
   readonly iterations?: number;
+  readonly operation?: 'taylor' | 'maclaurin' | 'convergence';
+  readonly seriesKind?: 'taylor' | 'maclaurin';
+  readonly variable?: string;
+  readonly center?: string;
+  readonly order?: number;
+  readonly polynomial?: string;
+  readonly seriesConvergence?: CasSeriesConvergenceResult;
 }
 
 const BINARY_OPERATORS = new Set(['+', '-', '*', '/', '^']);

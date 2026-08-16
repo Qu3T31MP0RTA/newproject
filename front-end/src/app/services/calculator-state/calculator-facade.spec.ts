@@ -266,6 +266,89 @@ describe('CalculatorFacade', () => {
     } as CalculatorComputationResult);
   });
 
+  it('evaluates limit CAS commands through the public router', () => {
+    facade.setExpression('limit((x^2-1)/(x-1),x,1)');
+
+    const result = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(result).toBe('2');
+    expect(facade.snapshot.expression).toBe('2');
+    expect(facade.snapshot.result).toBe('2');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'symbolic',
+      operation: 'limit',
+      source: 'limit((x^2-1)/(x-1),x,1)',
+      display: '2',
+      exact: true,
+      expression: '2',
+      latex: '2',
+    } as CalculatorComputationResult);
+  });
+
+  it('evaluates Taylor CAS commands and stores symbolic metadata', () => {
+    facade.setExpression('taylor(exp(x),x,0,4)');
+
+    const result = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(result).toContain('x');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'symbolic',
+      operation: 'taylor',
+      source: 'taylor(exp(x),x,0,4)',
+      display: result,
+      exact: true,
+      expression: result,
+      latex: result,
+      metadata: {
+        operation: 'taylor',
+        seriesKind: 'taylor',
+        variable: 'x',
+        center: '0',
+        order: 4,
+        polynomial: result,
+      },
+    } as CalculatorComputationResult);
+  });
+
+  it('evaluates convergence CAS commands and stores structured metadata', () => {
+    facade.setExpression('convergence(ln(1+x),x,0)');
+
+    const result = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(result).toContain('Radio de convergencia');
+    expect(facade.snapshot.expression).toBe('Radio de convergencia: 1\nIntervalo: (-1, 1]');
+    expect(facade.snapshot.result).toBe(result);
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'symbolic',
+      operation: 'convergence',
+      source: 'convergence(ln(1+x),x,0)',
+      display: result,
+      exact: true,
+      expression: result,
+      latex: result,
+      metadata: {
+        operation: 'convergence',
+        seriesConvergence: {
+          status: 'known',
+          center: '0',
+          radius: {
+            kind: 'finite',
+            value: '1',
+          },
+          interval: {
+            left: '-1',
+            right: '1',
+            leftIncluded: false,
+            rightIncluded: true,
+          },
+        },
+      },
+    } as CalculatorComputationResult);
+  });
+
   it('maps CAS derivative errors to a readable message', () => {
     facade.setExpression('diff(factorial(x), x)');
 
@@ -315,6 +398,138 @@ describe('CalculatorFacade', () => {
       variable: 'x',
       solutionKind: 'finite',
       solutions: ['-1', '1'],
+      conditions: [],
+    } as CalculatorComputationResult);
+  });
+
+  it('evaluates abs-based solve commands through CAS and stores equation metadata', () => {
+    facade.setExpression('solve(abs(x)=3,x)');
+
+    const result = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(result).toContain('x = -3');
+    expect(result).toContain('x = 3');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'equation-solutions',
+      operation: 'solve',
+      source: 'solve(abs(x)=3,x)',
+      display: result,
+      exact: true,
+      expression: 'solve(abs(x)=3,x)',
+      latex: ['-3', '3'],
+      variable: 'x',
+      solutionKind: 'finite',
+      solutions: ['-3', '3'],
+      conditions: [],
+    } as CalculatorComputationResult);
+  });
+
+  it('evaluates sqrt-based solve commands through CAS and stores equation metadata', () => {
+    facade.setExpression('solve(sqrt(x)=3,x)');
+
+    const result = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(result).toContain('x = 9');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'equation-solutions',
+      operation: 'solve',
+      source: 'solve(sqrt(x)=3,x)',
+      display: result,
+      exact: true,
+      expression: 'solve(sqrt(x)=3,x)',
+      latex: ['9'],
+      variable: 'x',
+      solutionKind: 'finite',
+      solutions: ['9'],
+      conditions: [],
+    } as CalculatorComputationResult);
+  });
+
+  it('evaluates solve commands for no-solution and infinite-solution states', () => {
+    facade.setExpression('solve(sqrt(x)=-1,x)');
+
+    const noneResult = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(noneResult).toBe('Sin solución');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'equation-solutions',
+      operation: 'solve',
+      source: 'solve(sqrt(x)=-1,x)',
+      display: 'Sin solución',
+      exact: true,
+      expression: 'solve(sqrt(x)=-1,x)',
+      latex: [],
+      variable: 'x',
+      solutionKind: 'none',
+      solutions: [],
+      conditions: [],
+    } as CalculatorComputationResult);
+
+    facade.setExpression('solve(x=x,x)');
+
+    const infiniteResult = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(infiniteResult).toBe('Infinitas soluciones');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'equation-solutions',
+      operation: 'solve',
+      source: 'solve(x=x,x)',
+      display: 'Infinitas soluciones',
+      exact: true,
+      expression: 'solve(x=x,x)',
+      latex: [],
+      variable: 'x',
+      solutionKind: 'infinite',
+      solutions: [],
+      conditions: [],
+    } as CalculatorComputationResult);
+  });
+
+  it('evaluates transcendental solve commands and stores equation metadata', () => {
+    facade.setExpression('solve(exp(x)=e,x)');
+
+    const result = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(result).toBe('1');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'equation-solutions',
+      operation: 'solve',
+      source: 'solve(exp(x)=e,x)',
+      display: result,
+      exact: true,
+      expression: 'solve(exp(x)=e,x)',
+      latex: ['1'],
+      variable: 'x',
+      solutionKind: 'finite',
+      solutions: ['1'],
+      conditions: [],
+    } as CalculatorComputationResult);
+  });
+
+  it('evaluates formal solve commands and stores their conditions', () => {
+    facade.setExpression('solve(y*x + 2 = 0, x)');
+
+    const result = facade.evaluate();
+
+    expect(engine.evaluate).not.toHaveBeenCalled();
+    expect(result).toBe('-2 / y');
+    expect(facade.snapshot.calculationResult).toEqual({
+      kind: 'equation-solutions',
+      operation: 'solve',
+      source: 'solve(y*x + 2 = 0, x)',
+      display: result,
+      exact: true,
+      expression: 'solve(y*x + 2 = 0, x)',
+      latex: ['-2 / y'],
+      variable: 'x',
+      solutionKind: 'finite',
+      solutions: ['-2 / y'],
+      conditions: ['y ≠ 0'],
     } as CalculatorComputationResult);
   });
 

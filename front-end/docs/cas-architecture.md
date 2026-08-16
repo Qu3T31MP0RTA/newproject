@@ -658,3 +658,29 @@ La calculadora ya puede reconocer y ejecutar comandos CAS visibles a través de 
 - no hay inspector CAS dedicado todavía;
 - no se cambia el motor numérico ni la gráfica;
 - el historial conserva la información CAS de forma retrocompatible, pero sigue siendo legible para entradas antiguas.
+
+## 22. CAS.UI.3 — UX final, documentación y descubribilidad
+
+La interfaz CAS visible queda organizada por familias de uso:
+
+- Álgebra: `simplify`, `expand`, `factor`, `solve`
+- Cálculo: `diff` / `differentiate`, `integrate`, `limit`
+- Series: `taylor`, `maclaurin`, `convergence`
+
+Cada acción expone plantilla, sintaxis breve y ejemplo corto para acelerar el descubrimiento sin añadir comandos nuevos.
+
+### Resultados visibles
+
+- simbólicos: `2 * x`, `x ^ 3 / 3`, `ln(2)`
+- soluciones: `x = -3`, `x = 3`
+- sin solución: `Sin solución`
+- infinitas soluciones: `Infinitas soluciones`
+- límites: `+∞`, `-∞`, `El límite no existe`
+- convergencia: `Radio de convergencia: 1`, `Intervalo: (-1, 1]`
+
+### Limitaciones deliberadas
+
+- no se introducen nuevas matemáticas;
+- no se tocan `cas-solver.ts`, `cas-integrator.ts`, `cas-differentiator.ts`, `cas-limit.ts`, `cas-taylor.ts`, `cas-series-convergence.ts` ni `cas-simplifier.ts` salvo bug reproducible;
+- `solve(sin(x)=0,x)`, `x*exp(x)=1` y otros casos fuera de alcance siguen reportándose como no soportados;
+- la documentación sirve como ayuda breve, no como tutorial largo.

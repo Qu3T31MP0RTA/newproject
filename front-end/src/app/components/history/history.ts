@@ -3,6 +3,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { HistoryService,HistoryItem } from '../../services/history-services/history';
 import { CalculatorFacade } from '../../services/calculator-state/calculator-facade';
+import type { CalculatorEquationSolutionsComputationResult } from '../../services/calculator-state/calculator-state';
 
 @Component({
   selector: 'app-history',
@@ -56,5 +57,37 @@ export class HistoryComponent implements OnInit, OnDestroy {
 
   clearAll(): void {
     this.historyService.clearHistory();
+  }
+
+  isEquationSolutions(
+    calculationResult: HistoryItem['calculationResult']
+  ): calculationResult is CalculatorEquationSolutionsComputationResult {
+    return calculationResult?.kind === 'equation-solutions';
+  }
+
+  getSolveResult(
+    calculationResult: HistoryItem['calculationResult']
+  ): CalculatorEquationSolutionsComputationResult | null {
+    return this.isEquationSolutions(calculationResult) ? calculationResult : null;
+  }
+
+  getSolveHeading(
+    calculationResult: CalculatorEquationSolutionsComputationResult
+  ): string {
+    if (calculationResult.solutionKind === 'none') return 'Sin solución';
+    if (calculationResult.solutionKind === 'infinite') {
+      return 'Infinitas soluciones';
+    }
+
+    const formal = (calculationResult.conditions?.length ?? 0) > 0;
+    if (!formal) {
+      return calculationResult.solutions.length === 1
+        ? 'Solución'
+        : 'Soluciones';
+    }
+
+    return calculationResult.solutions.length === 1
+      ? 'Solución formal'
+      : 'Soluciones formales';
   }
 }

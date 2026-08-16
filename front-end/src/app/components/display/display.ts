@@ -12,6 +12,7 @@ import { HistoryService } from '../../services/history-services/history';
 import { InputService } from '../../services/input-services/input-services';
 import { CalculatorFacade } from '../../services/calculator-state/calculator-facade';
 import type {
+  CalculatorEquationSolutionsComputationResult,
   CalculatorState,
   CalculatorStatus,
 } from '../../services/calculator-state/calculator-state';
@@ -23,6 +24,7 @@ interface DisplayViewModel {
   error: string | null;
   status: CalculatorStatus;
   statusLabel: string;
+  solveResult: CalculatorEquationSolutionsComputationResult | null;
 }
 
 @Component({
@@ -110,6 +112,10 @@ export class DisplayComponent implements AfterViewInit, OnDestroy {
       error: state.error?.message ?? null,
       status: state.status,
       statusLabel: this.getStatusLabel(state),
+      solveResult:
+        state.calculationResult?.kind === 'equation-solutions'
+          ? state.calculationResult
+          : null,
     };
   }
 
@@ -118,6 +124,20 @@ export class DisplayComponent implements AfterViewInit, OnDestroy {
     if (state.status === 'error') return 'Error';
     if (state.phase === 'result') return 'Resultado';
     return 'Listo';
+  }
+
+  getSolveLabel(result: CalculatorEquationSolutionsComputationResult): string {
+    if (result.solutionKind === 'none') return 'Sin solución';
+    if (result.solutionKind === 'infinite') return 'Infinitas soluciones';
+
+    const formal = (result.conditions?.length ?? 0) > 0;
+    if (!formal) {
+      return result.solutions.length === 1 ? 'Solución' : 'Soluciones';
+    }
+
+    return result.solutions.length === 1
+      ? 'Solución formal'
+      : 'Soluciones formales';
   }
 
   private scheduleCaretReveal(): void {

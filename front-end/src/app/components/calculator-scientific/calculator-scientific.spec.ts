@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { CalculatorScientificComponent } from './calculator-scientific';
 import { CalculatorFacade } from '../../services/calculator-state/calculator-facade';
@@ -150,8 +150,19 @@ describe('CalculatorScientificComponent', () => {
     expect(panel?.getAttribute('aria-label')).toBe('Herramientas de álgebra simbólica');
     expect(casButton?.getAttribute('aria-expanded')).toBe('true');
     const actions = Array.from(panel!.querySelectorAll<HTMLButtonElement>('[data-cas-action]'));
-    expect(actions.length).toBe(6);
-    expect(actions[0].getAttribute('title')).toContain('Derivada simbólica');
+    expect(actions.length).toBe(10);
+    expect(panel?.textContent).toContain('Álgebra');
+    expect(panel?.textContent).toContain('Cálculo');
+    expect(panel?.textContent).toContain('Series');
+    expect(actions.some(action => action.textContent?.includes('Convergencia'))).toBeTrue();
+    expect(actions.some(action => action.textContent?.includes('Límite'))).toBeTrue();
+    expect(actions.some(action => action.textContent?.includes('Taylor'))).toBeTrue();
+    expect(actions.some(action => action.textContent?.includes('Maclaurin'))).toBeTrue();
+    expect(
+      nativeElement()
+        .querySelector<HTMLButtonElement>('[data-cas-action="differentiate"]')
+        ?.getAttribute('title')
+    ).toContain('Derivada simbólica');
   });
 
   it('closes the CAS panel with Escape and returns focus to the toggle button', () => {

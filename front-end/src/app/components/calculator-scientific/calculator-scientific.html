@@ -1,4 +1,4 @@
-<section
+﻿<section
   class="scientific-keyboard"
   aria-label="Teclado de calculadora científica"
   (pointerdown)="onCalculatorPointerDown($event)"
@@ -70,22 +70,73 @@
       <span class="cas-panel-hint">Insertar plantilla en la expresión actual</span>
     </header>
 
-    <div class="cas-grid" role="group" aria-label="Acciones CAS">
-      <button
-        *ngFor="let action of casQuickActions"
-        type="button"
-        class="key cas-action"
-        [attr.data-cas-action]="action.id"
-        [attr.aria-label]="action.ariaLabel"
-        [attr.title]="action.description + ' · ' + action.example"
-        (click)="insertCasAction(action)"
-      >
-        <span class="cas-action-label">{{ action.label }}</span>
-        <span class="cas-action-syntax">{{ action.template }}</span>
-        <span class="cas-action-example">{{ action.example }}</span>
-      </button>
+    <div class="cas-groups">
+      <section class="cas-group">
+        <header class="cas-group-header">
+          <h3>Álgebra</h3>
+          <p>Simplificar, expandir, factorizar y resolver.</p>
+        </header>
+        <div class="cas-grid" role="group" aria-label="Acciones de álgebra">
+          <button
+            *ngFor="let action of casQuickActionGroups[0].actions"
+            type="button"
+            class="key cas-action"
+            [attr.data-cas-action]="action.id"
+            [attr.aria-label]="action.ariaLabel"
+            [attr.title]="action.description + ' ? ' + action.example"
+            (click)="insertCasAction(action)"
+          >
+            <span class="cas-action-label">{{ action.label }}</span>
+            <span class="cas-action-syntax">{{ action.template }}</span>
+            <span class="cas-action-example">{{ action.example }}</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="cas-group">
+        <header class="cas-group-header">
+          <h3>Cálculo</h3>
+          <p>Derivar, integrar y trabajar con límites.</p>
+        </header>
+        <div class="cas-grid" role="group" aria-label="Acciones de cálculo">
+          <button
+            *ngFor="let action of casQuickActionGroups[1].actions"
+            type="button"
+            class="key cas-action"
+            [attr.data-cas-action]="action.id"
+            [attr.aria-label]="action.ariaLabel"
+            [attr.title]="action.description + ' ? ' + action.example"
+            (click)="insertCasAction(action)"
+          >
+            <span class="cas-action-label">{{ action.label }}</span>
+            <span class="cas-action-syntax">{{ action.template }}</span>
+            <span class="cas-action-example">{{ action.example }}</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="cas-group">
+        <header class="cas-group-header">
+          <h3>Series</h3>
+          <p>Taylor, Maclaurin y convergencia.</p>
+        </header>
+        <div class="cas-grid" role="group" aria-label="Acciones de series">
+          <button
+            *ngFor="let action of casQuickActionGroups[2].actions"
+            type="button"
+            class="key cas-action"
+            [attr.data-cas-action]="action.id"
+            [attr.aria-label]="action.ariaLabel"
+            [attr.title]="action.description + ' ? ' + action.example"
+            (click)="insertCasAction(action)"
+          >
+            <span class="cas-action-label">{{ action.label }}</span>
+            <span class="cas-action-syntax">{{ action.template }}</span>
+            <span class="cas-action-example">{{ action.example }}</span>
+          </button>
+        </div>
+      </section>
     </div>
-  </section>
 
   <div
     *ngIf="showMemoryButtons"

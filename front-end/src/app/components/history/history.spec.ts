@@ -75,6 +75,155 @@ describe('HistoryComponent', () => {
     expect(fixture.nativeElement.querySelector('button a, a button')).toBeNull();
   });
 
+  it('renders solve results as structured solutions', () => {
+    const calculationResult: NonNullable<HistoryItem['calculationResult']> = {
+      kind: 'equation-solutions',
+      operation: 'solve',
+      source: 'solve(x^2 - 1 = 0, x)',
+      display: 'x = -1\nx = 1',
+      exact: true,
+      expression: 'solve(x^2 - 1 = 0, x)',
+      latex: ['-1', '1'],
+      variable: 'x',
+      solutionKind: 'finite',
+      solutions: ['-1', '1'],
+      conditions: [],
+    };
+    const item: HistoryItem = {
+      idi: 2,
+      expression: 'solve(x^2 - 1 = 0, x)',
+      result: 'x = -1\nx = 1',
+      calculationResult,
+    };
+    renderHistory([item]);
+
+    expect(fixture.nativeElement.querySelector('.history-solve .history-label').textContent.trim())
+      .toBe('Soluciones');
+    expect(fixture.nativeElement.querySelector('.history-solve-solutions').textContent).toContain(
+      'x ='
+    );
+    expect(fixture.nativeElement.querySelector('.history-solve-solutions').textContent).toContain(
+      '-1'
+    );
+    expect(fixture.nativeElement.querySelector('.history-solve-solutions').textContent).toContain(
+      '1'
+    );
+  });
+
+  it('renders a single solve result with the singular label', () => {
+    const calculationResult: NonNullable<HistoryItem['calculationResult']> = {
+      kind: 'equation-solutions',
+      operation: 'solve',
+      source: 'solve(sqrt(x)=3, x)',
+      display: 'x = 9',
+      exact: true,
+      expression: 'solve(sqrt(x)=3, x)',
+      latex: ['9'],
+      variable: 'x',
+      solutionKind: 'finite',
+      solutions: ['9'],
+      conditions: [],
+    };
+    const item: HistoryItem = {
+      idi: 6,
+      expression: 'solve(sqrt(x)=3, x)',
+      result: 'x = 9',
+      calculationResult,
+    };
+    renderHistory([item]);
+
+    expect(fixture.nativeElement.querySelector('.history-solve .history-label').textContent.trim())
+      .toBe('Solución');
+    expect(fixture.nativeElement.querySelector('.history-solve-solutions').textContent).toContain(
+      'x ='
+    );
+    expect(fixture.nativeElement.querySelector('.history-solve-solutions').textContent).toContain(
+      '9'
+    );
+  });
+
+  it('renders formal solve results with conditions', () => {
+    const calculationResult: NonNullable<HistoryItem['calculationResult']> = {
+      kind: 'equation-solutions',
+      operation: 'solve',
+      source: 'solve(y*x + 2 = 0, x)',
+      display: '-2 / y',
+      exact: true,
+      expression: 'solve(y*x + 2 = 0, x)',
+      latex: ['-2 / y'],
+      variable: 'x',
+      solutionKind: 'finite',
+      solutions: ['-2 / y'],
+      conditions: ['y ≠ 0'],
+    };
+    const item: HistoryItem = {
+      idi: 3,
+      expression: 'solve(y*x + 2 = 0, x)',
+      result: '-2 / y',
+      calculationResult,
+    };
+    renderHistory([item]);
+
+    expect(fixture.nativeElement.querySelector('.history-solve .history-label').textContent.trim())
+      .toBe('Solución formal');
+    expect(fixture.nativeElement.querySelector('.history-solve-conditions').textContent).toContain(
+      'Condición'
+    );
+    expect(fixture.nativeElement.querySelector('.history-solve-conditions').textContent).toContain(
+      'y ≠ 0'
+    );
+  });
+
+  it('renders solve states for none and infinite results', () => {
+    renderHistory([
+      {
+        idi: 4,
+        expression: 'solve(sqrt(x) = -1, x)',
+        result: 'Sin solución',
+        calculationResult: {
+          kind: 'equation-solutions',
+          operation: 'solve',
+          source: 'solve(sqrt(x) = -1, x)',
+          display: 'Sin solución',
+          exact: true,
+          expression: 'solve(sqrt(x) = -1, x)',
+          latex: [],
+          variable: 'x',
+          solutionKind: 'none',
+          solutions: [],
+          conditions: [],
+        },
+      },
+    ]);
+
+    expect(fixture.nativeElement.querySelector('.history-solve .history-label').textContent.trim())
+      .toBe('Sin solución');
+
+    renderHistory([
+      {
+        idi: 5,
+        expression: 'solve(x = x, x)',
+        result: 'Infinitas soluciones',
+        calculationResult: {
+          kind: 'equation-solutions',
+          operation: 'solve',
+          source: 'solve(x = x, x)',
+          display: 'Infinitas soluciones',
+          exact: true,
+          expression: 'solve(x = x, x)',
+          latex: [],
+          variable: 'x',
+          solutionKind: 'infinite',
+          solutions: [],
+          conditions: [],
+        },
+      },
+    ]);
+
+    expect(fixture.nativeElement.querySelector('.history-solve .history-label').textContent.trim())
+      .toBe('Infinitas soluciones');
+  });
+
   it('restores a history item through CalculatorFacade', () => {
     const item: HistoryItem = {
       idi: 1,
